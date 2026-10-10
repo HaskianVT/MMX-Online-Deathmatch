@@ -117,6 +117,14 @@ namespace MMXOnline
             return IPAddress.TryParse(ipAddressString, out _);
         }
 
+        // True for an IP address or a domain name (e.g. "mmx.example.com")
+        public static bool IsValidIpOrHost(this string ipOrHost)
+        {
+            if (string.IsNullOrWhiteSpace(ipOrHost)) return false;
+            if (ipOrHost.IsValidIpAddress()) return true;
+            return Uri.CheckHostName(ipOrHost.Trim()) == UriHostNameType.Dns;
+        }
+
         public static bool IsNullOrEmpty<T>(this ICollection<T> array)
         {
             return (array == null || array.Count == 0);

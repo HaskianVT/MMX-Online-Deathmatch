@@ -187,9 +187,15 @@ namespace Lidgren.Network
 				var addresses = Dns.GetHostAddresses(ipOrHost);
 				if (addresses == null)
 					return null;
+				// Prefer IPv4: sockets bind to IPv4 by default, so an IPv6 result would be unreachable
 				foreach (var address in addresses)
 				{
-					if (address.AddressFamily == AddressFamily.InterNetwork || address.AddressFamily == AddressFamily.InterNetworkV6)
+					if (address.AddressFamily == AddressFamily.InterNetwork)
+						return address;
+				}
+				foreach (var address in addresses)
+				{
+					if (address.AddressFamily == AddressFamily.InterNetworkV6)
 						return address;
 				}
 				return null;
