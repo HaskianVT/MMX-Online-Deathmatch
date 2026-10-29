@@ -28,6 +28,9 @@ namespace MMXOnline
 
         public static string GetLocalIPAddress()
         {
+            // Browsers can't look up the machine's IP. Offline matches (vs. CPU) go through here but don't use the network.
+            if (OperatingSystem.IsBrowser()) return "127.0.0.1";
+
             var host = Dns.GetHostEntry(Dns.GetHostName());
             foreach (var ip in host.AddressList)
             {

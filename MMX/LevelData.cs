@@ -330,10 +330,7 @@ namespace MMXOnline
             {
                 string rawMapSpriteChecksumString = loadCustomMapSprites();
                 string rawChecksumString = levelJsonStr + "|" + rawMapSpriteChecksumString;
-                using (MD5 md5 = MD5.Create())
-                {
-                    checksum = BitConverter.ToString(md5.ComputeHash(Encoding.UTF8.GetBytes(rawChecksumString))).Replace("-", String.Empty);
-                }
+                checksum = BitConverter.ToString(Md5.hash(Encoding.UTF8.GetBytes(rawChecksumString))).Replace("-", String.Empty);
                 customMapUrl = levelJson.customMapUrl ?? null;
             }
 

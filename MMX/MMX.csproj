@@ -40,4 +40,9 @@
     <ProjectReference Include="..\Lidgren.Network\Lidgren.Network.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The browser backend is built by MMX.Web -->
+    <Compile Remove="Platform\Web\**" />
+  </ItemGroup>
+
 </Project>

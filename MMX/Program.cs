@@ -54,6 +54,21 @@ namespace MMXOnline
 
         static void Run()
         {
+            if (!init()) return;
+            while (Global.window.IsOpen)
+            {
+                runFrame();
+            }
+        }
+
+        static Stopwatch fpsClock;
+        static Stopwatch diagnosticsClock;
+        static Stopwatch packetDiagStopwatch;
+
+        // Loads everything and opens the window. Returns false if the game can't run.
+        // Platforms that can't block in a loop (e.g. the browser) call this and then runFrame() once per frame themselves.
+        public static bool init()
+        {
 #if MAC
             Global.assetPath = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName) + "/";
             Global.writePath = Global.assetPath;
@@ -108,7 +123,7 @@ namespace MMXOnline
 
             if (!checkSystemRequirements())
             {
-                return;
+                return false;
             }
 
             Global.initMainWindow(Options.main);
@@ -166,64 +181,67 @@ namespace MMXOnline
             Menu.change(new MainMenu());
             Global.changeMusic("menu");
 
-            Stopwatch fpsClock = Stopwatch.StartNew();
-            Stopwatch diagnosticsClock = Stopwatch.StartNew();
-            Stopwatch packetDiagStopwatch = new Stopwatch();
+            fpsClock = Stopwatch.StartNew();
+            diagnosticsClock = Stopwatch.StartNew();
+            packetDiagStopwatch = new Stopwatch();
+            return true;
+        }
 
-            while (window.IsOpen)
+        // One iteration of the game loop: events, update and render
+        public static void runFrame()
+        {
+            RenderWindow window = Global.window;
+            if (Global.level != null && Global.level.started)
             {
-                if (Global.level != null && Global.level.started)
-                {
-                    Global.spf = (float)fpsClock.Elapsed.TotalSeconds;
-                    if (Global.spf != 0 && Global.frameCount % 60 == 0) Global.currentFPS = 1 / Global.spf;
-                    if (Global.spf > 0.033f) Global.spf = 0.033f;
-                    fpsClock.Restart();
-                }
-
-                window.DispatchEvents();
-                if (Global.isMouseLocked)
-                {
-                    Mouse.SetPosition(new Vector2i((int)Global.halfScreenW, (int)Global.halfScreenH), Global.window);
-                }
-
-                var clearColor = Color.Black;
-                if (Global.level?.levelData?.bgColor != null) clearColor = Global.level.levelData.bgColor;
-                window.Clear(clearColor);
-
-                long prevPackets = 0;
-                if (Global.showDiagnostics)
-                {
-                    diagnosticsClock.Restart();
-                    prevPackets = getBytesPerFrame();
-                }
-
-                update();
-                render();
-
-                if (Global.showDiagnostics)
-                {
-                    Global.lastFrameProcessTime = (int)diagnosticsClock.ElapsedMilliseconds;
-                    Global.lastFrameProcessTimes.Add(Global.lastFrameProcessTime);
-                    if (Global.lastFrameProcessTimes.Count > 120) Global.lastFrameProcessTimes.RemoveAt(0);
-
-                    long packetIncrease = getBytesPerFrame() - prevPackets;
-                    Global.lastFramePacketIncreases.Add(packetIncrease);
-                    if (Global.lastFramePacketIncreases.Count > 120) Global.lastFramePacketIncreases.RemoveAt(0);
-
-                    if (!packetDiagStopwatch.IsRunning) packetDiagStopwatch.Start();
-                    if (packetDiagStopwatch.ElapsedMilliseconds > 1000)
-                    {
-                        long packetTotalDelta = getPacketsReceived() - Global.packetTotal1SecondAgo;
-                        Global.packetTotal1SecondAgo = getPacketsReceived();
-                        packetDiagStopwatch.Restart();
-                        Global.last10SecondsPacketsReceived.Add(packetTotalDelta);
-                        if (Global.last10SecondsPacketsReceived.Count > 10) Global.last10SecondsPacketsReceived.RemoveAt(0);
-
-                    }
-                }
-
-                window.Display();
+                Global.spf = (float)fpsClock.Elapsed.TotalSeconds;
+                if (Global.spf != 0 && Global.frameCount % 60 == 0) Global.currentFPS = 1 / Global.spf;
+                if (Global.spf > 0.033f) Global.spf = 0.033f;
+                fpsClock.Restart();
             }
+
+            window.DispatchEvents();
+            if (Global.isMouseLocked)
+            {
+                Mouse.SetPosition(new Vector2i((int)Global.halfScreenW, (int)Global.halfScreenH), Global.window);
+            }
+
+            var clearColor = Color.Black;
+            if (Global.level?.levelData?.bgColor != null) clearColor = Global.level.levelData.bgColor;
+            window.Clear(clearColor);
+
+            long prevPackets = 0;
+            if (Global.showDiagnostics)
+            {
+                diagnosticsClock.Restart();
+                prevPackets = getBytesPerFrame();
+            }
+
+            update();
+            render();
+
+            if (Global.showDiagnostics)
+            {
+                Global.lastFrameProcessTime = (int)diagnosticsClock.ElapsedMilliseconds;
+                Global.lastFrameProcessTimes.Add(Global.lastFrameProcessTime);
+                if (Global.lastFrameProcessTimes.Count > 120) Global.lastFrameProcessTimes.RemoveAt(0);
+
+                long packetIncrease = getBytesPerFrame() - prevPackets;
+                Global.lastFramePacketIncreases.Add(packetIncrease);
+                if (Global.lastFramePacketIncreases.Count > 120) Global.lastFramePacketIncreases.RemoveAt(0);
+
+                if (!packetDiagStopwatch.IsRunning) packetDiagStopwatch.Start();
+                if (packetDiagStopwatch.ElapsedMilliseconds > 1000)
+                {
+                    long packetTotalDelta = getPacketsReceived() - Global.packetTotal1SecondAgo;
+                    Global.packetTotal1SecondAgo = getPacketsReceived();
+                    packetDiagStopwatch.Restart();
+                    Global.last10SecondsPacketsReceived.Add(packetTotalDelta);
+                    if (Global.last10SecondsPacketsReceived.Count > 10) Global.last10SecondsPacketsReceived.RemoveAt(0);
+
+                }
+            }
+
+            window.Display();
         }
 
         static long getPacketsReceived()

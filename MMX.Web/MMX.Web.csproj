@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+  <!-- Browser build of the game: the MMX sources with the Platform/Web backend instead of Platform/Sfml -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>MMXOnline</RootNamespace>
+    <StartupObject>MMXOnline.WebMain</StartupObject>
+    <DefineConstants>$(DefineConstants);WEB</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <!-- The game relies on reflection (JSON with dynamic, protobuf), which trimming breaks -->
+    <PublishTrimmed>false</PublishTrimmed>
+    <AssetsZip>$(MSBuildProjectDirectory)\wwwroot\assets.zip</AssetsZip>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\MMX\**\*.cs" Exclude="..\MMX\Platform\Sfml\**;..\MMX\bin\**;..\MMX\obj\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The browser runtime always trims CoreLib on publish, and it removed types the game's dependencies need -->
+    <TrimmerRootAssembly Include="System.Private.CoreLib" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DeviceId" Version="6.0.0" />
+    <PackageReference Include="GoogleAnalyticsTracker.Simple" Version="6.0.5" />
+    <PackageReference Include="MathNet.Spatial" Version="0.6.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Profanity.Detector" Version="0.1.8" />
+    <PackageReference Include="protobuf-net" Version="3.0.101" />
+    <PackageReference Include="StbImageSharp" Version="2.30.16" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lidgren.Network\Lidgren.Network.csproj" />
+  </ItemGroup>
+
+  <!-- The game reads its assets from files, so main.js downloads them zipped and WebMain extracts them to the in-memory file system -->
+  <Target Name="ZipAssets" BeforeTargets="Build" Condition="!Exists('$(AssetsZip)')">
+    <ZipDirectory SourceDirectory="..\LevelEditor\assets" DestinationFile="$(AssetsZip)" />
+  </Target>
+
+</Project>

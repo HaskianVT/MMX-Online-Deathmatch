@@ -487,10 +487,7 @@ namespace MMXOnline
         {
             var checksumBytes = Encoding.UTF8.GetBytes(fileChecksumBlob);
             
-            using (MD5 md5 = MD5.Create())
-            {
-                checksum = BitConverter.ToString(md5.ComputeHash(checksumBytes)).Replace("-", String.Empty);
-            }
+            checksum = BitConverter.ToString(Md5.hash(checksumBytes)).Replace("-", String.Empty);
 
             fileChecksumBlob = "";
         }

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MMX Online: Deathmatch</title>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+            background: #000;
+            color: #ccc;
+            font-family: sans-serif;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            image-rendering: pixelated;
+            outline: none;
+            max-width: 100vw;
+            max-height: 100vh;
+        }
+
+        #status {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" tabindex="0"></canvas>
+    <div id="status">Loading...</div>
+    <script type="module" src="main.js"></script>
+</body>
+</html>
