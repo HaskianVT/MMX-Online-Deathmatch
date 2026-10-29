@@ -88,7 +88,9 @@ MMX.Web builds the game for the browser with WebAssembly, using the MMX sources 
 1. Run `dotnet publish MMX.Web -c Release` (takes several minutes). The first build zips LevelEditor/assets into MMX.Web/wwwroot/assets.zip; delete that file to update it after changing assets.
 2. Run `python MMX.Web/serve.py` and open http://localhost:8080. Any static web server works for hosting it, e.g. bin/Release/net10.0/publish/wwwroot behind the Cloudflare Tunnel.
 
-Not supported in the browser yet: audio, TrueType text, gamepads, saving options between visits and online play.
+For online play, publish a region.txt next to index.html with WebSocket regions only (e.g. `{ "name": "MyServer", "ip": "wss://mmx.example.com" }`, see the Cloudflare Tunnel section below), since browsers can't open TCP or UDP sockets. LAN play isn't available in the browser.
+
+Not supported in the browser yet: TrueType text, gamepads and saving options between visits.
 
 ## Self hosting
 
