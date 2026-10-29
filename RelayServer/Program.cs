@@ -92,6 +92,16 @@ namespace RelayServer
             
             Thread thread = new Thread(udpMain);
             thread.Start();
+
+            try
+            {
+                WebSocketGateway.start();
+                Console.WriteLine(string.Format("WebSocket gateway listening on http://127.0.0.1:{0} (point your Cloudflare Tunnel here to host behind CG-NAT)", WebSocketTunnel.gatewayPort));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Could not start WebSocket gateway, only direct connections will work. Exception: " + e.Message);
+            }
             server = new TcpListener(IPAddress.Any, Global.basePort);
             server.Start();
 
@@ -118,7 +128,7 @@ namespace RelayServer
                 {
                     string deviceId = message.RemovePrefix("CheckBan:");
 
-                    string ipAddress = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
+                    string ipAddress = WebSocketTunnel.getClientIp(client.Client.RemoteEndPoint, false);
 
                     BanEntry banEntry = Global.banList.FirstOrDefault(b => b.isBanned(ipAddress, deviceId, 0));
                     if (banEntry == null) banEntry = Global.banList.FirstOrDefault(b => b.isBanned(ipAddress, deviceId, 1));
@@ -186,8 +196,8 @@ namespace RelayServer
                         bool sameUserMatch = false;
                         foreach (var myServer in Server.servers.Keys)
                         {
-                            string myServerIp = myServer?.host?.connection?.RemoteEndPoint?.Address?.ToString();
-                            string connectingIp = ((IPEndPoint)client.Client?.RemoteEndPoint)?.Address?.ToString();
+                            string myServerIp = WebSocketTunnel.getClientIp(myServer?.host?.connection?.RemoteEndPoint, true);
+                            string connectingIp = WebSocketTunnel.getClientIp(client.Client?.RemoteEndPoint, false);
                             if (myServerIp == connectingIp)
                             {
                                 sameUserMatch = true;

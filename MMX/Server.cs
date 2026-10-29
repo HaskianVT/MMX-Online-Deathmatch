@@ -511,7 +511,7 @@ namespace MMXOnline
                 }
                 else if (im.MessageType == NetIncomingMessageType.ConnectionApproval)
                 {
-                    string ipAddress = im.SenderConnection.RemoteEndPoint.Address.ToString();
+                    string ipAddress = WebSocketTunnel.getClientIp(im.SenderConnection.RemoteEndPoint, true);
                     BanEntry banEntry = Global.banList.FirstOrDefault(b => b.isBanned(ipAddress, "", 0));
                     if (banEntry == null)
                     {
@@ -745,7 +745,7 @@ namespace MMXOnline
                 {
                     NetOutgoingMessage om = s_server.CreateMessage();
                     om.Write((byte)RPC.templates.IndexOf(RPC.reportPlayerResponse));
-                    var reportedPlayer = new ReportedPlayer(player.name, player.connection.RemoteEndPoint?.Address?.ToString(), player.deviceId);
+                    var reportedPlayer = new ReportedPlayer(player.name, WebSocketTunnel.getClientIp(player.connection.RemoteEndPoint, true), player.deviceId);
                     string reportedPlayerJson = JsonConvert.SerializeObject(reportedPlayer);
                     om.Write(reportedPlayerJson);
                     s_server.SendMessage(om, im.SenderConnection, rpcTemplate.netDeliveryMethod, 0);

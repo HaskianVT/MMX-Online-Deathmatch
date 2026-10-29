@@ -117,11 +117,12 @@ namespace MMXOnline
             return IPAddress.TryParse(ipAddressString, out _);
         }
 
-        // True for an IP address or a domain name (e.g. "mmx.example.com")
+        // True for an IP address, a domain name (e.g. "mmx.example.com") or a WebSocket relay URL (e.g. "wss://mmx.example.com")
         public static bool IsValidIpOrHost(this string ipOrHost)
         {
             if (string.IsNullOrWhiteSpace(ipOrHost)) return false;
             if (ipOrHost.IsValidIpAddress()) return true;
+            if (WebSocketTunnel.isWebSocketUrl(ipOrHost)) return true;
             return Uri.CheckHostName(ipOrHost.Trim()) == UriHostNameType.Dns;
         }
 
@@ -153,11 +154,32 @@ namespace MMXOnline
 
         public static void SendStringMessage(this TcpClient client, string message, NetworkStream networkStream)
         {
-            byte[] messageBytes = Encoding.ASCII.GetBytes(message);
-            SendMessage(client, messageBytes, networkStream);
+            networkStream.SendStringMessage(message);
         }
 
         public static void SendMessage(this TcpClient client, byte[] messageBytes, NetworkStream networkStream)
+        {
+            networkStream.SendMessage(messageBytes);
+        }
+
+        public static string ReadStringMessage(this TcpClient client, NetworkStream networkStream)
+        {
+            return networkStream.ReadStringMessage();
+        }
+
+        public static byte[] ReadMessage(this TcpClient client, NetworkStream networkStream)
+        {
+            return networkStream.ReadMessage();
+        }
+
+        // Stream versions of the above, so matchmaking messages can also travel over a WebSocketStream
+        public static void SendStringMessage(this Stream networkStream, string message)
+        {
+            byte[] messageBytes = Encoding.ASCII.GetBytes(message);
+            networkStream.SendMessage(messageBytes);
+        }
+
+        public static void SendMessage(this Stream networkStream, byte[] messageBytes)
         {
             // determine length of message
             int length = messageBytes.Length;
@@ -179,16 +201,16 @@ namespace MMXOnline
         }
 
 
-        public static string ReadStringMessage(this TcpClient client, NetworkStream networkStream)
+        public static string ReadStringMessage(this Stream networkStream)
         {
-            var messageBytes = ReadMessage(client, networkStream);
+            var messageBytes = networkStream.ReadMessage();
 
             string message = System.Text.Encoding.ASCII.GetString(messageBytes);
 
             return message;
         }
 
-        public static byte[] ReadMessage(this TcpClient client, NetworkStream networkStream)
+        public static byte[] ReadMessage(this Stream networkStream)
         {
             // read length bytes, and flip if necessary
             byte[] lengthBytes = ReadBytes(sizeof(int), networkStream); // int is 4 bytes
@@ -206,7 +228,7 @@ namespace MMXOnline
             return messageBytes;
         }
 
-        private static byte[] ReadBytes(int count, NetworkStream networkStream)
+        private static byte[] ReadBytes(int count, Stream networkStream)
         {
             byte[] bytes = new byte[count]; // buffer to fill (and later return)
             int readCount = 0; // bytes is empty at the start

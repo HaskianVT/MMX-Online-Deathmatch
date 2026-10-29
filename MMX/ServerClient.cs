@@ -36,9 +36,25 @@ namespace MMXOnline
             var client = new NetClient(config);
             client.Start();
             NetOutgoingMessage hail = client.CreateMessage("a");
-            client.Connect(serverIp, Global.basePort, hail);
+            getConnectEndPoint(serverIp, Global.basePort, out string host, out int port);
+            client.Connect(host, port, hail);
 
             return client;
+        }
+
+        // For a WebSocket relay URL, Lidgren connects to a local tunnel endpoint instead of to the relay itself
+        private static void getConnectEndPoint(string serverIp, int serverPort, out string host, out int port)
+        {
+            if (WebSocketTunnel.isWebSocketUrl(serverIp))
+            {
+                host = "127.0.0.1";
+                port = WebSocketTunnel.openUdpTunnel(serverIp, serverPort);
+            }
+            else
+            {
+                host = serverIp;
+                port = serverPort;
+            }
         }
 
         public static ServerClient Create(string serverIp, string serverName, int serverPort, ServerPlayer inputServerPlayer, out JoinServerResponse joinServerResponse, out string error)
@@ -56,12 +72,15 @@ namespace MMXOnline
             var client = new NetClient(config);
             client.Start();
             NetOutgoingMessage hail = client.CreateMessage(JsonConvert.SerializeObject(inputServerPlayer));
-            client.Connect(serverIp, serverPort, hail);
+            getConnectEndPoint(serverIp, serverPort, out string host, out int port);
+            client.Connect(host, port, hail);
 
             var serverClient = new ServerClient(client, inputServerPlayer.isHost);
 
+            // A WebSocket tunnel needs extra time to open its connection (TLS + Cloudflare) before the join response can arrive
+            int maxAttempts = WebSocketTunnel.isWebSocketUrl(serverIp) ? 50 : 20;
             int count = 0;
-            while (count < 20)
+            while (count < maxAttempts)
             {
                 serverClient.getMessages(out var messages, false);
                 foreach (var message in messages)

@@ -27,20 +27,24 @@ namespace MMXOnline
             return client;
         }
 
-        private string sendHelper(string ip, string query, int? timeoutMs = null)
+        // Opens a matchmaking connection to the relay (TCP, or a WebSocket for "ws://"/"wss://" regions), runs exchange on it and returns its result.
+        // Returns null if anything fails.
+        private T sendExchange<T>(string ip, int? timeoutMs, Func<Stream, T> exchange) where T : class
         {
             try
             {
                 if (timeoutMs == null) timeoutMs = Options.main.getNetworkTimeoutMs();
+                if (WebSocketTunnel.isWebSocketUrl(ip))
+                {
+                    using Stream webSocketStream = WebSocketTunnel.openTcpStream(ip, timeoutMs.Value);
+                    return exchange(webSocketStream);
+                }
                 using (TcpClient client = getTcpClient(ip, timeoutMs.Value))
                 {
                     using NetworkStream networkStream = client.GetStream();
                     client.SendTimeout = timeoutMs.Value;
                     client.ReceiveTimeout = timeoutMs.Value;
-                    
-                    client.SendStringMessage(query, networkStream);
-                    string response = client.ReadStringMessage(networkStream);
-                    return response;
+                    return exchange(networkStream);
                 }
             }
             catch
@@ -49,26 +53,22 @@ namespace MMXOnline
             }
         }
 
+        private string sendHelper(string ip, string query, int? timeoutMs = null)
+        {
+            return sendExchange(ip, timeoutMs, stream =>
+            {
+                stream.SendStringMessage(query);
+                return stream.ReadStringMessage();
+            });
+        }
+
         private byte[] sendHelperGetBytes(string ip, string query, int? timeoutMs = null)
         {
-            try
+            return sendExchange(ip, timeoutMs, stream =>
             {
-                if (timeoutMs == null) timeoutMs = Options.main.getNetworkTimeoutMs();
-                using (TcpClient client = getTcpClient(ip, timeoutMs.Value))
-                {
-                    using NetworkStream networkStream = client.GetStream();
-                    client.SendTimeout = timeoutMs.Value;
-                    client.ReceiveTimeout = timeoutMs.Value;
-
-                    client.SendStringMessage(query, networkStream);
-                    byte[] response = client.ReadMessage(networkStream);
-                    return response;
-                }
-            }
-            catch
-            {
-                return null;
-            }
+                stream.SendStringMessage(query);
+                return stream.ReadMessage();
+            });
         }
 
         public string send(string ip, string query, string responseHeader, int? timeoutMs = null)
