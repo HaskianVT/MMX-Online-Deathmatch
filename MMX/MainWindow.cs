@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using SFML.Window;
 using Newtonsoft.Json;
-using static SFML.Window.Keyboard;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;

@@ -5,7 +5,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json.Serialization;
-using static SFML.Window.Keyboard;
 
 namespace MMXOnline
 {

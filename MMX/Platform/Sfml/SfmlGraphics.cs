@@ -170,9 +170,9 @@ namespace MMXOnline
         public void Dispose() => native.Dispose();
     }
 
-    public class RenderWindow : RenderTarget
+    // Events are in SfmlWindowEvents.cs
+    public partial class RenderWindow : RenderTarget
     {
-        // Used for window and input events until those move to the platform layer
         internal readonly SFML.Graphics.RenderWindow sfmlWindow;
         internal override SFML.Graphics.RenderTarget nativeTarget => sfmlWindow;
 
@@ -182,6 +182,7 @@ namespace MMXOnline
             sfmlWindow = fullscreen ?
                 new SFML.Graphics.RenderWindow(mode, title, SFML.Window.Styles.Fullscreen) :
                 new SFML.Graphics.RenderWindow(mode, title);
+            forwardEvents();
         }
 
         public static Vector2u DesktopSize => new Vector2u(SFML.Window.VideoMode.DesktopMode.Width, SFML.Window.VideoMode.DesktopMode.Height);

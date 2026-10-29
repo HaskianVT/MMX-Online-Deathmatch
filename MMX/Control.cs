@@ -1,10 +1,8 @@
 ﻿using Newtonsoft.Json;
-using SFML.Window;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using static SFML.Window.Keyboard;
 
 namespace MMXOnline
 {
@@ -387,7 +385,7 @@ namespace MMXOnline
         public JoystickInfo(uint id)
         {
             this.id = id;
-            name = Joystick.GetIdentification(id).Name;
+            name = Joystick.GetName(id);
         }
     }
 }

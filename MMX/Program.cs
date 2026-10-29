@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using SFML.Window;
 using Newtonsoft.Json;
-using static SFML.Window.Keyboard;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
@@ -115,17 +113,15 @@ namespace MMXOnline
 
             Global.initMainWindow(Options.main);
             RenderWindow window = Global.window;
-            // Window and input events still come straight from SFML until they move to the platform layer
-            var sfmlWindow = window.sfmlWindow;
 
-            sfmlWindow.Closed += new EventHandler(onClosed);
-            sfmlWindow.Resized += new EventHandler<SizeEventArgs>(onWindowResized);
-            sfmlWindow.KeyPressed += new EventHandler<KeyEventArgs>(onKeyPressed);
-            sfmlWindow.KeyReleased += new EventHandler<KeyEventArgs>(onKeyReleased);
-            sfmlWindow.MouseMoved += new EventHandler<MouseMoveEventArgs>(onMouseMove);
-            sfmlWindow.MouseButtonPressed += new EventHandler<MouseButtonEventArgs>(onMousePressed);
-            sfmlWindow.MouseButtonReleased += new EventHandler<MouseButtonEventArgs>(onMouseReleased);
-            sfmlWindow.MouseWheelScrolled += new EventHandler<MouseWheelScrollEventArgs>(onMouseScrolled);
+            window.Closed += new EventHandler(onClosed);
+            window.Resized += new EventHandler<SizeEventArgs>(onWindowResized);
+            window.KeyPressed += new EventHandler<KeyEventArgs>(onKeyPressed);
+            window.KeyReleased += new EventHandler<KeyEventArgs>(onKeyReleased);
+            window.MouseMoved += new EventHandler<MouseMoveEventArgs>(onMouseMove);
+            window.MouseButtonPressed += new EventHandler<MouseButtonEventArgs>(onMousePressed);
+            window.MouseButtonReleased += new EventHandler<MouseButtonEventArgs>(onMouseReleased);
+            window.MouseWheelScrolled += new EventHandler<MouseWheelScrollEventArgs>(onMouseScrolled);
 
             if (Options.main.areShadersDisabled() == false)
             {
@@ -163,7 +159,7 @@ namespace MMXOnline
                 }
             });
 
-            setupControllers(sfmlWindow);
+            setupControllers(window);
 
             // Force startup config to be fetched
 
@@ -187,7 +183,7 @@ namespace MMXOnline
                 window.DispatchEvents();
                 if (Global.isMouseLocked)
                 {
-                    Mouse.SetPosition(new Vector2i((int)Global.halfScreenW, (int)Global.halfScreenH), Global.window.sfmlWindow);
+                    Mouse.SetPosition(new Vector2i((int)Global.halfScreenW, (int)Global.halfScreenH), Global.window);
                 }
 
                 var clearColor = Color.Black;
@@ -246,7 +242,7 @@ namespace MMXOnline
             return 0;
         }
 
-        static void setupControllers(Window window)
+        static void setupControllers(RenderWindow window)
         {
             // Set up joysticks
             window.JoystickButtonPressed += new EventHandler<JoystickButtonEventArgs>(onJoystickButtonPressed);
@@ -482,7 +478,7 @@ namespace MMXOnline
             //if (e.Code == Keyboard.Key.Escape)
             //    window.Close();
 
-            Key key = (Key)e.Code;
+            Key key = e.Code;
             Global.input.keyPressed[key] = !Global.input.keyHeld.ContainsKey(key) || !Global.input.keyHeld[key];
             Global.input.keyHeld[key] = true;
             Global.input.setLastUpdateTime();
@@ -560,7 +556,7 @@ namespace MMXOnline
 
         private static void onKeyReleased(object sender, KeyEventArgs e)
         {
-            Key key = (Key)e.Code;
+            Key key = e.Code;
             Global.input.keyHeld[key] = false;
             Global.input.keyPressed[key] = false;
         }
@@ -692,7 +688,7 @@ namespace MMXOnline
         private static void joystickConnectedHelper(uint joystickId)
         {
             if (Control.isJoystick()) return;
-            string controllerName = Joystick.GetIdentification(joystickId).Name;
+            string controllerName = Joystick.GetName(joystickId);
 
             Global.input.buttonPressed = new Dictionary<int, bool>();
             Global.input.buttonHeld = new Dictionary<int, bool>();

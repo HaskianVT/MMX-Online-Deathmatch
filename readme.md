@@ -43,6 +43,7 @@ For level editors, open the LevelEditor folder in VS Code to get started. See th
 ## High level code notes
 
 - Program.cs is the starting point for the app.
+- The game doesn't use SFML directly but its own platform layer in MMX/Platform, so other backends (e.g. a browser one) can be added. The files directly in MMX/Platform are platform independent and describe the API (graphics, audio, window and input events). MMX/Platform/Sfml implements it with SFML and is the only code that references SFML.
 - Global.cs has some important constants that are global to the app, including version number, checksum, regions, and a lot more.
 - Every entity in the game is a GameObject. They can either be geometries (Geometry.cs, i.e. walls, collision zones) or actors (Actor.cs, i.e. objects like characters, projectiles, etc.)
 - Level.cs is the main class for running in-match logic.
