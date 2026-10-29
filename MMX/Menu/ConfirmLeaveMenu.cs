@@ -1,5 +1,4 @@
-﻿using SFML.Graphics;
-using System;
+﻿using System;
 using static SFML.Window.Keyboard;
 
 namespace MMXOnline

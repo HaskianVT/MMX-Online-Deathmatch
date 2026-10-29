@@ -1,6 +1,4 @@
 ﻿using Newtonsoft.Json;
-using SFML.Graphics;
-using SFML.System;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -1021,7 +1019,7 @@ namespace MMXOnline
             }
 
             Global.radarRenderTexture.Display();
-            var sprite = new SFML.Graphics.Sprite(Global.radarRenderTexture.Texture);
+            var sprite = new TextureSprite(Global.radarRenderTexture.Texture);
             sprite.Position = new Vector2f(radarX, radarY);
             sprite.Scale = new Vector2f(0.25f, 0.25f);
             Global.window.SetView(DrawWrappers.hudView);

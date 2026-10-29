@@ -1,9 +1,8 @@
-﻿using SFML.Graphics;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using static SFML.Graphics.Text;
+using static MMXOnline.Text;
 using static SFML.Window.Keyboard;
 
 namespace MMXOnline

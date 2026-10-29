@@ -1,5 +1,4 @@
-﻿using SFML.Graphics;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace MMXOnline
 {

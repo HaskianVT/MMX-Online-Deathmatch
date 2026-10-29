@@ -1,6 +1,4 @@
-﻿using SFML.Graphics;
-using SFML.System;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -19,7 +17,7 @@ namespace MMXOnline
         }
     }
 
-    public class DrawLayer : Transformable, Drawable
+    public class DrawLayer : Drawable
     {
         public List<DrawableWrapper> oneOffs = new List<DrawableWrapper>();
 
@@ -42,7 +40,7 @@ namespace MMXOnline
                 }
                 else if (oneOff.shaders != null && oneOff.shaders.Count > 1)
                 {
-                    var sprite = oneOff.drawable as SFML.Graphics.Sprite;
+                    var sprite = oneOff.drawable as TextureSprite;
                     if (sprite == null) continue;
 
                     Global.renderTexture.Clear(new Color(0, 0, 0, 0));
@@ -59,7 +57,7 @@ namespace MMXOnline
                     renderStates.Shader = oneOff.shaders[0].getShader();
                     Global.renderTexture.Draw(sprite, renderStates);
 
-                    var sprite3 = new SFML.Graphics.Sprite(Global.renderTexture.Texture);
+                    var sprite3 = new TextureSprite(Global.renderTexture.Texture);
                     sprite3.Position = originalPosition;
                     sprite3.Origin = originalOrigin;
                     sprite3.Scale = originalScale;
@@ -178,7 +176,7 @@ namespace MMXOnline
 
             pixel.Clear(color);
             pixel.Display();
-            var pixelSprite = new SFML.Graphics.Sprite(pixel.Texture);
+            var pixelSprite = new TextureSprite(pixel.Texture);
             pixelSprite.Position = new Vector2f(x, y);
 
             if (isWorldPos)
@@ -285,7 +283,7 @@ namespace MMXOnline
                 dy = MathF.Round(dy);
             }
 
-            var sprite = new SFML.Graphics.Sprite(texture, new IntRect((int)sx, (int)sy, (int)sw, (int)sh));
+            var sprite = new TextureSprite(texture, new IntRect((int)sx, (int)sy, (int)sw, (int)sh));
             sprite.Position = new Vector2f(dx, dy);
             sprite.Origin = new Vector2f(cx, cy);
             sprite.Scale = new Vector2f(xScale, yScale);
@@ -329,7 +327,7 @@ namespace MMXOnline
                     Texture texture = textureMDA[i, j];
                     if (texture != null)
                     {
-                        var sprite = new SFML.Graphics.Sprite(texture);
+                        var sprite = new TextureSprite(texture);
                         int xOffset = 0;
                         int yOffset = 0;
                         int tileW = (int)texture.Size.X;

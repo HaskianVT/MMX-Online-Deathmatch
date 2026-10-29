@@ -2,12 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using SFML.Graphics;
-using SFML.System;
 using SFML.Window;
 using Newtonsoft.Json;
 using static SFML.Window.Keyboard;
-using SFML.Graphics.Glsl;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
@@ -118,15 +115,17 @@ namespace MMXOnline
 
             Global.initMainWindow(Options.main);
             RenderWindow window = Global.window;
+            // Window and input events still come straight from SFML until they move to the platform layer
+            var sfmlWindow = window.sfmlWindow;
 
-            window.Closed += new EventHandler(onClosed);
-            window.Resized += new EventHandler<SizeEventArgs>(onWindowResized);
-            window.KeyPressed += new EventHandler<KeyEventArgs>(onKeyPressed);
-            window.KeyReleased += new EventHandler<KeyEventArgs>(onKeyReleased);
-            window.MouseMoved += new EventHandler<MouseMoveEventArgs>(onMouseMove);
-            window.MouseButtonPressed += new EventHandler<MouseButtonEventArgs>(onMousePressed);
-            window.MouseButtonReleased += new EventHandler<MouseButtonEventArgs>(onMouseReleased);
-            window.MouseWheelScrolled += new EventHandler<MouseWheelScrollEventArgs>(onMouseScrolled);
+            sfmlWindow.Closed += new EventHandler(onClosed);
+            sfmlWindow.Resized += new EventHandler<SizeEventArgs>(onWindowResized);
+            sfmlWindow.KeyPressed += new EventHandler<KeyEventArgs>(onKeyPressed);
+            sfmlWindow.KeyReleased += new EventHandler<KeyEventArgs>(onKeyReleased);
+            sfmlWindow.MouseMoved += new EventHandler<MouseMoveEventArgs>(onMouseMove);
+            sfmlWindow.MouseButtonPressed += new EventHandler<MouseButtonEventArgs>(onMousePressed);
+            sfmlWindow.MouseButtonReleased += new EventHandler<MouseButtonEventArgs>(onMouseReleased);
+            sfmlWindow.MouseWheelScrolled += new EventHandler<MouseWheelScrollEventArgs>(onMouseScrolled);
 
             if (Options.main.areShadersDisabled() == false)
             {
@@ -164,22 +163,22 @@ namespace MMXOnline
                 }
             });
 
-            setupControllers(window);
+            setupControllers(sfmlWindow);
 
             // Force startup config to be fetched
 
             Menu.change(new MainMenu());
             Global.changeMusic("menu");
 
-            Clock fpsClock = new Clock();
-            Clock diagnosticsClock = new Clock();
+            Stopwatch fpsClock = Stopwatch.StartNew();
+            Stopwatch diagnosticsClock = Stopwatch.StartNew();
             Stopwatch packetDiagStopwatch = new Stopwatch();
 
             while (window.IsOpen)
             {
                 if (Global.level != null && Global.level.started)
                 {
-                    Global.spf = fpsClock.ElapsedTime.AsSeconds();
+                    Global.spf = (float)fpsClock.Elapsed.TotalSeconds;
                     if (Global.spf != 0 && Global.frameCount % 60 == 0) Global.currentFPS = 1 / Global.spf;
                     if (Global.spf > 0.033f) Global.spf = 0.033f;
                     fpsClock.Restart();
@@ -188,7 +187,7 @@ namespace MMXOnline
                 window.DispatchEvents();
                 if (Global.isMouseLocked)
                 {
-                    Mouse.SetPosition(new Vector2i((int)Global.halfScreenW, (int)Global.halfScreenH), Global.window);
+                    Mouse.SetPosition(new Vector2i((int)Global.halfScreenW, (int)Global.halfScreenH), Global.window.sfmlWindow);
                 }
 
                 var clearColor = Color.Black;
@@ -207,7 +206,7 @@ namespace MMXOnline
 
                 if (Global.showDiagnostics)
                 {
-                    Global.lastFrameProcessTime = diagnosticsClock.ElapsedTime.AsMilliseconds();
+                    Global.lastFrameProcessTime = (int)diagnosticsClock.ElapsedMilliseconds;
                     Global.lastFrameProcessTimes.Add(Global.lastFrameProcessTime);
                     if (Global.lastFrameProcessTimes.Count > 120) Global.lastFrameProcessTimes.RemoveAt(0);
 
@@ -460,8 +459,7 @@ namespace MMXOnline
                 }
             }
 
-            RenderWindow window = (RenderWindow)sender;
-            window.Close();
+            Global.window.Close();
         }
 
         private static void onWindowResized(object sender, SizeEventArgs e)
@@ -481,7 +479,6 @@ namespace MMXOnline
         /// </summary>
         private static void onKeyPressed(object sender, KeyEventArgs e)
         {
-            RenderWindow window = (RenderWindow)sender;
             //if (e.Code == Keyboard.Key.Escape)
             //    window.Close();
 

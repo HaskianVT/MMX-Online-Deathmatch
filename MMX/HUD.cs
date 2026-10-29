@@ -1,11 +1,9 @@
-﻿using SFML.Graphics;
-using SFML.System;
-using SFML.Window;
+﻿using SFML.Window;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using static SFML.Graphics.Text;
+using static MMXOnline.Text;
 using static SFML.Window.Sensor;
 
 namespace MMXOnline
@@ -22,7 +20,7 @@ namespace MMXOnline
         Outline
     }
 
-    public class BatchDrawable : Transformable, Drawable
+    public class BatchDrawable : Drawable
     {
         public VertexArray vertices;
         public Texture texture;
@@ -36,7 +34,6 @@ namespace MMXOnline
 
         public void Draw(RenderTarget target, RenderStates states)
         {
-            states.Transform *= Transform;
             states.Texture = texture;
             target.Draw(vertices, states);
         }
@@ -63,7 +60,7 @@ namespace MMXOnline
             Global.window.SetView(Global.view);
         }
 
-        public static void addToVertexArray(BatchDrawable bd, SFML.Graphics.Sprite sprite)
+        public static void addToVertexArray(BatchDrawable bd, TextureSprite sprite)
         {
             float sx = sprite.TextureRect.Left;
             float sy = sprite.TextureRect.Top;
@@ -180,7 +177,7 @@ namespace MMXOnline
                     int rx = charInt % 16;
                     int ry = charInt / 16;
 
-                    var textSprite = new SFML.Graphics.Sprite(bitmapFontTexture, new IntRect(rx * whPadding, ry * whPadding, 11, 11));
+                    var textSprite = new TextureSprite(bitmapFontTexture, new IntRect(rx * whPadding, ry * whPadding, 11, 11));
 
                     float xPos = MathF.Round(x) + (i * fontSize * 8f) - 1;
                     float yPos = MathF.Round(y) + (j * fontSize * (8f + lineMargin)) - 1;
@@ -328,7 +325,7 @@ namespace MMXOnline
         public static void DrawTextureHUD(Texture texture, float sx, float sy, float sw, float sh, float dx, float dy, float alpha = 1)
         {
             if (texture == null) return;
-            var sprite = new SFML.Graphics.Sprite(texture, new IntRect((int)sx, (int)sy, (int)sw, (int)sh));
+            var sprite = new TextureSprite(texture, new IntRect((int)sx, (int)sy, (int)sw, (int)sh));
             sprite.Position = new Vector2f(dx, dy);
             sprite.Color = new Color(255, 255, 255, (byte)(int)(alpha * 255));
             drawToHUD(sprite);
@@ -337,7 +334,7 @@ namespace MMXOnline
         public static void DrawTextureHUD(Texture texture, float x, float y)
         {
             if (texture == null) return;
-            var sprite = new SFML.Graphics.Sprite(texture);
+            var sprite = new TextureSprite(texture);
             sprite.Position = new Vector2f(x, y);
             drawToHUD(sprite);
         }
@@ -345,7 +342,7 @@ namespace MMXOnline
         public static void DrawTitleTexture(Texture texture)
         {
             if (texture == null) return;
-            var sprite = new SFML.Graphics.Sprite(texture);
+            var sprite = new TextureSprite(texture);
             sprite.Position = new Vector2f(-20, 0);
             sprite.Scale = new Vector2f(0.75f, 0.75f);
             drawToHUD(sprite);

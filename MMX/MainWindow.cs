@@ -2,12 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using SFML.Graphics;
-using SFML.System;
 using SFML.Window;
 using Newtonsoft.Json;
 using static SFML.Window.Keyboard;
-using SFML.Graphics.Glsl;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
@@ -86,21 +83,20 @@ namespace MMXOnline
 
             if (!fullscreen)
             {
-                window = new RenderWindow(new VideoMode(windowW, windowH), "MMX Online: Deathmatch");
+                window = new RenderWindow(windowW, windowH, "MMX Online: Deathmatch", false);
                 window.SetVerticalSyncEnabled(options.vsync);
                 if (Global.hideMouse) window.SetMouseCursorVisible(false);
             }
             else
             {
-                var desktopWidth = VideoMode.DesktopMode.Width;
-                var desktopHeight = VideoMode.DesktopMode.Height;
-                window = new RenderWindow(new VideoMode(desktopWidth, desktopHeight), "MMX Online: Deathmatch", Styles.Fullscreen);
+                var desktopSize = RenderWindow.DesktopSize;
+                window = new RenderWindow(desktopSize.X, desktopSize.Y, "MMX Online: Deathmatch", true);
                 window.SetMouseCursorVisible(false);
                 viewPort = getFullScreenViewPort();
             }
 
             var image = new Image(Global.assetPath + "assets/menu/icon.png");
-            window.SetIcon(image.Size.X, image.Size.Y, image.Pixels);
+            window.SetIcon(image);
 
             view = new View(new Vector2f(0, 0), new Vector2f(screenW, screenH));
             view.Viewport = viewPort;
@@ -123,13 +119,13 @@ namespace MMXOnline
 
         public static FloatRect getFullScreenViewPort()
         {
-            float desktopWidth = VideoMode.DesktopMode.Width;
-            float desktopHeight = VideoMode.DesktopMode.Height;
-            float heightMultiple = (float)VideoMode.DesktopMode.Height / (float)screenH;
+            float desktopWidth = RenderWindow.DesktopSize.X;
+            float desktopHeight = RenderWindow.DesktopSize.Y;
+            float heightMultiple = desktopHeight / (float)screenH;
 
             if (Options.main.integerFullscreen)
             {
-                heightMultiple = MathF.Floor((float)VideoMode.DesktopMode.Height / (float)screenH);
+                heightMultiple = MathF.Floor(desktopHeight / (float)screenH);
             }
             float extraWidthPercent = (desktopWidth - (float)screenW * heightMultiple) / desktopWidth;
             float extraHeightPercent = (desktopHeight - (float)screenH * heightMultiple) / desktopHeight;

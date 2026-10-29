@@ -271,7 +271,7 @@ namespace MMXOnline
 
         public override void render(float x, float y)
         {
-            DrawWrappers.DrawLine(pos.x, pos.y, pos.x + (deltaPos.normalize().x * 10), pos.y + (deltaPos.normalize().y * 10), SFML.Graphics.Color.Yellow, 2, 0, true);
+            DrawWrappers.DrawLine(pos.x, pos.y, pos.x + (deltaPos.normalize().x * 10), pos.y + (deltaPos.normalize().y * 10), Color.Yellow, 2, 0, true);
         }
     }
 

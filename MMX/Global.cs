@@ -2,7 +2,6 @@
 using DeviceId.Encoders;
 using DeviceId.Formatters;
 using Newtonsoft.Json;
-using SFML.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

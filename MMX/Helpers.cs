@@ -1,6 +1,4 @@
 ﻿using ProtoBuf;
-using SFML.Graphics;
-using SFML.System;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,7 +9,7 @@ using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
-using static SFML.Graphics.Text;
+using static MMXOnline.Text;
 
 namespace MMXOnline
 {
@@ -418,15 +416,12 @@ namespace MMXOnline
         private static Shader createShaderHelper(string shaderCode, string header)
         {
             if (!string.IsNullOrEmpty(header)) header += Environment.NewLine;
-            byte[] byteArray = Encoding.ASCII.GetBytes(header + shaderCode);
-            MemoryStream stream = new MemoryStream(byteArray);
             try
             {
-                return new Shader(null, null, stream);
+                return new Shader(header + shaderCode);
             }
             catch
             {
-                stream.Dispose();
                 return null;
             }
         }

@@ -1,5 +1,4 @@
-﻿using SFML.Graphics;
-
+﻿
 namespace MMXOnline
 {
     public class GravityBeetle : Maverick

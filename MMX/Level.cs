@@ -1,7 +1,5 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using SFML.Graphics;
-using SFML.System;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -1894,7 +1892,7 @@ namespace MMXOnline
             // Draw the screen render texture with any post processing applied
             if (srt != null)
             {
-                var screenSprite = new SFML.Graphics.Sprite(srt.Texture);
+                var screenSprite = new TextureSprite(srt.Texture);
                 screenSprite.Position = new Vector2f(camX, camY);
 
                 var ppShaders = new List<ShaderWrapper>();
@@ -1930,7 +1928,7 @@ namespace MMXOnline
                         prevRT = i % 2 == 1 ? Global.srtBuffer1 : Global.srtBuffer2;
                         currentRT = i % 2 == 0 ? Global.srtBuffer1 : Global.srtBuffer2;
 
-                        var bufferSprite = i == 0 ? new SFML.Graphics.Sprite(srt.Texture) : new SFML.Graphics.Sprite(prevRT.Texture);
+                        var bufferSprite = i == 0 ? new TextureSprite(srt.Texture) : new TextureSprite(prevRT.Texture);
 
                         currentRT.Clear(new Color(0, 0, 0, 0));
                         currentRT.Display();
@@ -1938,7 +1936,7 @@ namespace MMXOnline
                         currentRT.Draw(bufferSprite, renderStates);
                     }
 
-                    var sprite2 = new SFML.Graphics.Sprite(currentRT.Texture);
+                    var sprite2 = new TextureSprite(currentRT.Texture);
                     sprite2.Position = new Vector2f(camX, camY);
 
                     Global.window.Draw(sprite2);
