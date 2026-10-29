@@ -3,11 +3,9 @@ param(
 [string]
 $version,
 
-[string] 
-$baseOutputPath = 'C:\Users\username\Desktop'
+[string]
+$baseOutputPath = 'D:\Proyectos\Builds'
 )
 
-.\buildserver.ps1 -version $version -baseOutputPath $baseOutputPath -os win-x64
-.\buildserver.ps1 -version $version -baseOutputPath $baseOutputPath -os win-x86
+# Single self-contained Windows x64 build (does not require .NET to be installed on the server)
 .\buildserver.ps1 -version $version -baseOutputPath $baseOutputPath -os win-x64 -sc true
-.\buildserver.ps1 -version $version -baseOutputPath $baseOutputPath -os win-x86 -sc true
