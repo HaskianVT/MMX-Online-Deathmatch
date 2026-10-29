@@ -16,13 +16,15 @@ namespace MMXOnline
         Action<string> submitAction;
         public int maxLength;
         public bool allowEmpty;
+        public bool censor;
 
-        public EnterTextMenu(string message, int maxLength, Action<string> submitAction, bool allowEmpty = false)
+        public EnterTextMenu(string message, int maxLength, Action<string> submitAction, bool allowEmpty = false, bool censor = true)
         {
             this.message = message;
             this.maxLength = maxLength;
             this.submitAction = submitAction;
             this.allowEmpty = allowEmpty;
+            this.censor = censor;
         }
 
         public void update()
@@ -34,7 +36,7 @@ namespace MMXOnline
 
             if (Global.input.isPressed(Key.Enter) && (allowEmpty || !string.IsNullOrWhiteSpace(text.Trim())))
             {
-                text = Helpers.censor(text);
+                if (censor) text = Helpers.censor(text);
                 submitAction(text);
             }
         }
@@ -46,11 +48,12 @@ namespace MMXOnline
             DrawWrappers.DrawRect(5, 5, Global.screenW - 5, Global.screenH - 5, true, Color.Black, 0, ZIndex.HUD, false);
             Helpers.drawTextStd(message, Global.screenW / 2, top, alignment: Alignment.Center);
 
-            float xPos = Global.screenW * 0.33f;
+            float width = Helpers.measureTextStd(TCat.Default, text).x;
+            // Long text (e.g. a domain) shifts left so it stays on screen
+            float xPos = Math.Max(10, Math.Min(Global.screenW * 0.33f, Global.screenW - 20 - width));
             Helpers.drawTextStd(text, xPos, 20 + top, alignment: Alignment.Left);
             if (blinkTime >= 0.5f)
             {
-                float width = Helpers.measureTextStd(TCat.Default, text).x;
                 Helpers.drawTextStd("<", xPos + width + 3, 20 + top, alignment: Alignment.Left);
             }
 

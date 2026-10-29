@@ -3,15 +3,37 @@ param(
 [string]
 $version,
 
-[string] 
-$baseOutputPath = 'C:\Users\username\Desktop'
+[string]
+$baseOutputPath = 'D:\Proyectos\Builds',
+
+# Copied into each build so players can connect without setting it up. Skipped if the file doesn't exist.
+[string]
+$regionFile = "$baseOutputPath\region.txt"
 )
 
-#.\build.ps1 -version $version -baseOutputPath $baseOutputPath -os win-x86 -sc true -zip true -deleteAfterZip true
-.\build.ps1 -version $version -baseOutputPath $baseOutputPath -os win-x86 -sc false -includeAssets false -runBuildTools false -zip true -deleteAfterZip true
-.\build.ps1 -version $version -baseOutputPath $baseOutputPath -os win-x64 -sc true -includeAssets false -runBuildTools false -zip true -deleteAfterZip true
-.\build.ps1 -version $version -baseOutputPath $baseOutputPath -os win-x64 -sc false -includeAssets false -runBuildTools false -zip true -deleteAfterZip true
+$ErrorActionPreference = "Stop"
 
-Copy-Item -Path .\LevelEditor\assets -Destination $baseOutputPath -Force -Recurse
-#Compress-Archive -Path "$baseOutputPath\assets" -DestinationPath "$baseOutputPath\assets.zip"
-#Remove-Item -Path "$baseOutputPath\assets" -Recurse
+$builds = @(
+    @{ os = 'win-x86'; sc = 'false' },
+    @{ os = 'win-x64'; sc = 'true' },
+    @{ os = 'win-x64'; sc = 'false' }
+)
+
+$includeRegion = Test-Path $regionFile
+if (-not $includeRegion)
+{
+    Write-Host "No region.txt found at $regionFile, builds will not include one."
+}
+
+foreach ($build in $builds)
+{
+    # Each build folder is complete (game, assets and region.txt) so it can be zipped and shared as is
+    .\build.ps1 -version $version -baseOutputPath $baseOutputPath -os $build.os -sc $build.sc -includeAssets true -runBuildTools false
+
+    if ($includeRegion)
+    {
+        $scStr = If ($build.sc -eq 'true') {"_sc"} Else {""}
+        $name = "MMXOnlineV$($version.Replace('.','_'))_$($build.os.Replace('-','_'))$scStr"
+        Copy-Item -Path $regionFile -Destination "$baseOutputPath\$name\region.txt" -Force
+    }
+}

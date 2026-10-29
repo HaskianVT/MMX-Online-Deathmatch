@@ -258,9 +258,10 @@ namespace MMXOnline
                 }
                 else
                 {
-                    Menu.change(new EnterTextMenu("Enter IP Address", 15, (ipAddressStr) =>
+                    Menu.change(new EnterTextMenu("Enter IP address or domain", 45, (ipAddressStr) =>
                     {
-                        if (ipAddressStr.IsValidIpAddress())
+                        ipAddressStr = ipAddressStr.Trim();
+                        if (ipAddressStr.IsValidIpOrHost())
                         {
                             lock (Global.lanRegions)
                             {
@@ -274,9 +275,9 @@ namespace MMXOnline
                         }
                         else
                         {
-                            Menu.change(new ErrorMenu(new string[] { "Invalid IP address." }, this));
+                            Menu.change(new ErrorMenu(new string[] { "Invalid IP address or domain." }, this));
                         }
-                    }));
+                    }, censor: false));
                 }
             }
         }

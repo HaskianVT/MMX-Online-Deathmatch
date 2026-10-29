@@ -98,4 +98,6 @@ If the relay server machine has no public IP (e.g. your ISP uses CG-NAT) or you 
 3. Add a public hostname to the tunnel (e.g. `mmx.example.com`) with service type `HTTP` and URL `127.0.0.1:14240`. Opening `https://mmx.example.com` in a browser should then show "MMXOD relay server WebSocket gateway is running."
 4. Players set the `ip` in their region.txt to the WebSocket URL: `{ "name": "MyServer", "ip": "wss://mmx.example.com" }`
 
+region.txt can also list several servers as a JSON array, e.g. `[ { "name": "MyServer", "ip": "wss://mmx.example.com" }, { "name": "Other", "ip": "203.0.113.5" } ]`. The match list shows matches from all of them, and the region used for hosting is picked in Settings. The game reads region.txt from Documents\MMXOD if it exists there, otherwise from the game folder. buildwindows.ps1 copies a region.txt placed in the output folder into every build, along with the assets.
+
 Since WebSockets run over TCP, a lost packet delays the ones after it, so matches may stutter more than with direct UDP on poor connections. The relay server sees the real player IPs through Cloudflare's `CF-Connecting-IP` header, so bans and the one match per user limit still work.
