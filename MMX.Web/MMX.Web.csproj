@@ -9,8 +9,12 @@
     <DefineConstants>$(DefineConstants);WEB</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <!-- The game relies on reflection (JSON with dynamic, protobuf), which trimming breaks -->
-    <PublishTrimmed>false</PublishTrimmed>
+    <!-- Compiles to native WebAssembly on publish (needs the wasm-tools workload); the interpreter is too slow for the game.
+         AOT requires trimming, but the game relies on reflection (JSON with dynamic, protobuf), so only the framework
+         assemblies are trimmed (partial mode) and the ones dynamic uses are kept whole below. -->
+    <RunAOTCompilation>true</RunAOTCompilation>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
     <AssetsZip>$(MSBuildProjectDirectory)\wwwroot\assets.zip</AssetsZip>
   </PropertyGroup>
 
@@ -19,8 +23,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The browser runtime always trims CoreLib on publish, and it removed types the game's dependencies need -->
-    <TrimmerRootAssembly Include="System.Private.CoreLib" />
+    <!-- Used through reflection by dynamic (Newtonsoft's JObject in LevelData) -->
+    <TrimmerRootAssembly Include="Microsoft.CSharp" />
+    <TrimmerRootAssembly Include="System.Linq.Expressions" />
+    <TrimmerRootAssembly Include="System.Dynamic.Runtime" />
   </ItemGroup>
 
   <ItemGroup>

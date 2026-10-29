@@ -81,6 +81,15 @@ Replace $baseOutputPath in these scripts (and the ones they call) with the path 
 For the ban tool run buildbantool.ps1. For the server tools, there is no powershell script. You have to manually build a release (or even debug) build in Visual Studio and copy/zip up the bin folders accordingly for distribution.
 Note, these are only useful if you want to host your own server AND manage a warning/ban system. If so you'll need to update the ip address in the code (BanTool/Form1.cs, ServerTools/Program.cs) to the one of your server before building/releasing it.
 
+### Browser build (experimental)
+
+MMX.Web builds the game for the browser with WebAssembly, using the MMX sources with the MMX/Platform/Web backend (WebGL2) instead of SFML. It needs the wasm-tools workload (`dotnet workload install wasm-tools`, as administrator), since it's compiled ahead of time to native WebAssembly; the interpreter is too slow for the game.
+
+1. Run `dotnet publish MMX.Web -c Release` (takes several minutes). The first build zips LevelEditor/assets into MMX.Web/wwwroot/assets.zip; delete that file to update it after changing assets.
+2. Run `python MMX.Web/serve.py` and open http://localhost:8080. Any static web server works for hosting it, e.g. bin/Release/net10.0/publish/wwwroot behind the Cloudflare Tunnel.
+
+Not supported in the browser yet: audio, TrueType text, gamepads, saving options between visits and online play.
+
 ## Self hosting
 
 To self host an online server, take the relay server build (or grab the v19.12 relay server build or later from the downloads page) and run it on any server on the internet with a public IP address, with TCP and UDP ports 14242-14342 opened on it. Then provide people with the IP address of the server which they can update their region.txt file with to connect to your server via internet option.
