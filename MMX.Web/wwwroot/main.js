@@ -1,5 +1,6 @@
 import { dotnet } from './_framework/dotnet.js';
 import * as gl from './webgl.js';
+import * as audio from './audio.js';
 
 const status = document.getElementById('status');
 const canvas = document.getElementById('canvas');
@@ -12,7 +13,7 @@ function setStatus(text) {
 try {
     setStatus('Loading runtime...');
     const { setModuleImports, getAssemblyExports, getConfig, runMain } = await dotnet.create();
-    setModuleImports('platform', { gl });
+    setModuleImports('platform', { gl, audio });
     gl.init(canvas);
 
     const exports = await getAssemblyExports(getConfig().mainAssemblyName);
