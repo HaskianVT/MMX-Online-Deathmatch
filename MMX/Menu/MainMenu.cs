@@ -23,6 +23,9 @@ namespace MMXOnline
         public Point optionPos6 = new Point(90, startPos + yDistance*5);
         public Point optionPos7 = new Point(90, startPos + yDistance*6);
 
+        // A browser page can't close itself, so there's no Quit option there
+        static readonly bool canQuit = !OperatingSystem.IsBrowser();
+
         public float blinkTime = 0;
 
         public string playerName = "";
@@ -74,7 +77,7 @@ namespace MMXOnline
                 return;
             }
 
-            Helpers.menuUpDown(ref selectY, 0, 6);
+            Helpers.menuUpDown(ref selectY, 0, canQuit ? 6 : 5);
 
             if (Global.input.isPressedMenu(Control.MenuSelectPrimary))
             {
@@ -219,7 +222,7 @@ namespace MMXOnline
             Helpers.drawTextStd(TCat.Option, "LOADOUT", startX, optionPos4.y, selected: selectY == 3);
             Helpers.drawTextStd(TCat.Option, "CONTROLS", startX, optionPos5.y, selected: selectY == 4);
             Helpers.drawTextStd(TCat.Option, "SETTINGS", startX, optionPos6.y, selected: selectY == 5);
-            Helpers.drawTextStd(TCat.Option, "QUIT", startX, optionPos7.y, selected: selectY == 6);
+            if (canQuit) Helpers.drawTextStd(TCat.Option, "QUIT", startX, optionPos7.y, selected: selectY == 6);
             
             Helpers.drawTextStd(TCat.BotHelp, "Up/down: Change selection, [X]: Choose", Global.screenW / 2, 209, Alignment.Center, fontSize: 24);
 
