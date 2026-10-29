@@ -17,6 +17,8 @@ namespace Lidgren.Network
 		private NetPeerStatus m_status;
 		private Thread m_networkThread;
 		private Socket m_socket;
+		// Used instead of m_socket when the configuration has a DatagramTransport
+		private NetDatagramTransport m_transport;
 		internal byte[] m_sendBuffer;
 		internal byte[] m_receiveBuffer;
 		internal NetIncomingMessage m_readHelperMessage;
@@ -116,6 +118,12 @@ namespace Lidgren.Network
 			}
 			m_lastSocketBind = now;
 
+			if (m_transport != null)
+			{
+				m_listenPort = m_transport.LocalPort;
+				return;
+			}
+
 			using (var mutex = new Mutex(false, "Global\\lidgrenSocketBind"))
 			{
 				try
@@ -189,6 +197,7 @@ namespace Lidgren.Network
 				m_handshakes.Clear();
 
 				// bind to socket
+				m_transport = m_configuration.DatagramTransport;
 				BindSocket(false);
 
 				m_receiveBuffer = new byte[m_configuration.ReceiveBufferSize];
@@ -196,9 +205,10 @@ namespace Lidgren.Network
 				m_readHelperMessage = new NetIncomingMessage(NetIncomingMessageType.Error);
 				m_readHelperMessage.m_data = m_receiveBuffer;
 
-				byte[] macBytes = NetUtility.GetMacAddressBytes();
+				// null without a network interface (e.g. in browsers)
+				byte[] macBytes = NetUtility.GetMacAddressBytes() ?? new byte[0];
 
-				var boundEp = m_socket.LocalEndPoint as NetEndPoint;
+				var boundEp = localEndPoint;
 				byte[] epBytes = BitConverter.GetBytes(boundEp.GetHashCode());
 				byte[] combined = new byte[epBytes.Length + macBytes.Length];
 				Array.Copy(epBytes, 0, combined, 0, epBytes.Length);
@@ -207,6 +217,19 @@ namespace Lidgren.Network
 
 				m_status = NetPeerStatus.Running;
 			}
+		}
+
+		private NetEndPoint localEndPoint => m_transport != null ? new NetEndPoint(IPAddress.Loopback, m_listenPort) : m_socket.LocalEndPoint as NetEndPoint;
+
+		// Sends through the DatagramTransport if there's one, otherwise through the UDP socket
+		private int sendDatagram(byte[] data, int numBytes, NetEndPoint target)
+		{
+			if (m_transport != null)
+			{
+				m_transport.SendTo(data, numBytes, target);
+				return numBytes;
+			}
+			return m_socket.SendTo(data, 0, numBytes, SocketFlags.None, target);
 		}
 
 		private void NetworkLoop()
@@ -267,12 +290,18 @@ namespace Lidgren.Network
 			// one final heartbeat, will send stuff and do disconnect
 			Heartbeat();
 
-			NetUtility.Sleep(10);
+			if (m_transport == null)
+				NetUtility.Sleep(10);
 
 			lock (m_initializeLock)
 			{
 				try
 				{
+					if (m_transport != null)
+					{
+						m_transport.Close();
+						m_transport = null;
+					}
 					if (m_socket != null)
 					{
 						try
@@ -412,6 +441,13 @@ namespace Lidgren.Network
 			//
 			// read from socket
 			//
+			if (m_transport != null)
+			{
+				now = NetTime.Now;
+				while (ReceiveSocketData(now)) { }
+				return;
+			}
+
 			if (m_socket == null)
 				return;
 
@@ -454,12 +490,24 @@ namespace Lidgren.Network
             }
 		}
 
-        private void ReceiveSocketData(double now)
+        // Returns false when using a DatagramTransport and there was nothing to receive
+        private bool ReceiveSocketData(double now)
         {
-            int bytesReceived = m_socket.ReceiveFrom(m_receiveBuffer, 0, m_receiveBuffer.Length, SocketFlags.None, ref m_senderRemote);
+            int bytesReceived;
+            if (m_transport != null)
+            {
+                bytesReceived = m_transport.ReceiveFrom(m_receiveBuffer, out NetEndPoint transportSender);
+                if (bytesReceived == 0)
+                    return false;
+                m_senderRemote = transportSender;
+            }
+            else
+            {
+                bytesReceived = m_socket.ReceiveFrom(m_receiveBuffer, 0, m_receiveBuffer.Length, SocketFlags.None, ref m_senderRemote);
+            }
 
 			if (bytesReceived < NetConstants.HeaderByteSize)
-				return;
+				return true;
 
 			//LogVerbose("Received " + bytesReceived + " bytes");
 
@@ -476,14 +524,14 @@ namespace Lidgren.Network
 						resp = resp.Substring(resp.ToLower().IndexOf("location:") + 9);
 						resp = resp.Substring(0, resp.IndexOf("\r")).Trim();
 						m_upnp.ExtractServiceUrl(resp);
-						return;
+						return true;
 					}
 					catch (Exception ex)
 					{
 						LogDebug("Failed to parse UPnP response: " + ex.ToString());
 
 						// don't try to parse this packet further
-						return;
+						return true;
 					}
 				}
 			}
@@ -524,13 +572,13 @@ namespace Lidgren.Network
 				if (bytesReceived - ptr < payloadByteLength)
 				{
 					LogWarning("Malformed packet; stated payload length " + payloadByteLength + ", remaining bytes " + (bytesReceived - ptr));
-					return;
+					return true;
 				}
 
 				if (tp >= NetMessageType.Unused1 && tp <= NetMessageType.Unused29)
 				{
 					ThrowOrLog("Unexpected NetMessageType: " + tp);
-					return;
+					return true;
 				}
 
 				try
@@ -545,7 +593,7 @@ namespace Lidgren.Network
 					else
 					{
 						if (sender == null && !m_configuration.IsMessageTypeEnabled(NetIncomingMessageType.UnconnectedData))
-							return; // dropping unconnected message since it's not enabled
+							return true; // dropping unconnected message since it's not enabled
 
 						NetIncomingMessage msg = CreateIncomingMessage(NetIncomingMessageType.Data, payloadByteLength);
 						msg.m_isFragment = isFragment;
@@ -590,6 +638,7 @@ namespace Lidgren.Network
 			m_statistics.PacketReceived(bytesReceived, numMessages, numFragments);
 			if (sender != null)
 				sender.m_statistics.PacketReceived(bytesReceived, numMessages, numFragments);
+			return true;
         }
 
         /// <summary>

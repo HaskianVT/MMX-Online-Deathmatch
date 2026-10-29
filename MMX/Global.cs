@@ -736,28 +736,27 @@ namespace MMXOnline
         public static Task regionPingTask;
         public static void updateRegionPings()
         {
-            Task.Run(() =>
+            Task.Run(async () =>
             {
-                lock (regions)
+                foreach (var region in regions.ToList())
                 {
-                    foreach (var region in regions)
-                    {
-                        region.computePing();
-                    }
+                    await region.computePing();
                 }
             });
         }
 
         public static void updateLANRegionPings()
         {
-            Task.Run(() =>
+            Task.Run(async () =>
             {
+                List<Region> lanRegionsCopy;
                 lock (lanRegions)
                 {
-                    foreach (var lanRegion in lanRegions)
-                    {
-                        lanRegion.computePing();
-                    }
+                    lanRegionsCopy = lanRegions.ToList();
+                }
+                foreach (var lanRegion in lanRegionsCopy)
+                {
+                    await lanRegion.computePing();
                 }
             });
         }

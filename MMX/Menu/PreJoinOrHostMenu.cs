@@ -19,6 +19,8 @@ namespace MMXOnline
         public const float startX = 120;
         public int state;
         public float state1Time;
+        // Browsers can't search the local network or reach LAN relays (only WebSocket regions), so there's no LAN option there
+        static readonly bool canPlayLAN = !OperatingSystem.IsBrowser();
 
         public PreJoinOrHostMenu(MainMenu prevMenu, bool isJoin)
         {
@@ -32,7 +34,7 @@ namespace MMXOnline
         {
             if (state == 0)
             {
-                Helpers.menuUpDown(ref selectY, 0, 1);
+                Helpers.menuUpDown(ref selectY, 0, canPlayLAN ? 1 : 0);
                 if (Global.input.isPressedMenu(Control.MenuSelectPrimary))
                 {
                     if (selectY == 0)
@@ -73,8 +75,10 @@ namespace MMXOnline
                     if (isJoin) nextMenu = new JoinMenu(false);
                     else nextMenu = new HostMenu(prevMenu, null, false, false);
 
-                    if (canPlayOnline(out string[] warningMessage))
+                    ConnectingMenu.run("Connecting", async () =>
                     {
+                        var (canPlay, warningMessage) = await canPlayOnline();
+                        if (!canPlay) return;
                         if (warningMessage != null)
                         {
                             Menu.change(new ErrorMenu(warningMessage, nextMenu));
@@ -83,7 +87,7 @@ namespace MMXOnline
                         {
                             Menu.change(nextMenu);
                         }
-                    }
+                    }, this);
                 }
             }
         }
@@ -116,19 +120,20 @@ namespace MMXOnline
             };
         }
 
-        public bool canPlayOnline(out string[] warningMessage)
+        // If online play isn't allowed, this changes to a menu explaining why. warningMessage is shown before continuing, if any.
+        public async Task<(bool canPlay, string[] warningMessage)> canPlayOnline()
         {
-            warningMessage = null;
+            string[] warningMessage = null;
 
             string deviceId = Global.deviceId;
             if (string.IsNullOrEmpty(deviceId))
             {
                 Menu.change(new ErrorMenu(new string[] { "Error in fetching device id.", "You cannot play online." }, new MainMenu()));
-                return false;
+                return (false, null);
             }
             if (!Global.checkBan)
             {
-                var response = Global.matchmakingQuerier.send(Options.main.getRegion().ip, "CheckBan:" + deviceId, "CheckBan");
+                var response = await Global.matchmakingQuerier.sendAsync(Options.main.getRegion().ip, "CheckBan:" + deviceId, "CheckBan");
                 if (response != null)
                 {
                     Global.checkBan = true;
@@ -138,7 +143,7 @@ namespace MMXOnline
             if (!Global.checkBan)
             {
                 Menu.change(new ErrorMenu(new string[] { "Unable to connect to server in region.txt." }, new MainMenu()));
-                return false;
+                return (false, null);
             }
             if (Global.banEntry != null)
             {
@@ -155,7 +160,7 @@ namespace MMXOnline
                         "Appeal to an admin of the server."
                     };
                     Menu.change(new ErrorMenu(banLines, new MainMenu()));
-                    return false;
+                    return (false, null);
                 }
                 else if (Global.banEntry.banType == 1)
                 {
@@ -181,7 +186,7 @@ namespace MMXOnline
                 }
             }
 
-            return true;
+            return (true, warningMessage);
         }
 
         public void render()
@@ -209,7 +214,7 @@ namespace MMXOnline
             Helpers.drawTextStd(TCat.Default, "https://gamemaker19.github.io/MMXOnlineDesktop/decom.html", Global.halfScreenW, msgPos + 20, Alignment.Center, fontSize: 18);
             DrawWrappers.DrawLine(10, msgPos + 32, Global.screenW - 10, msgPos + 32, Color.White, 0.5f, ZIndex.HUD, isWorldPos: false);
 
-            Helpers.drawTextStd(TCat.Option, "LAN", startX, optionPos2.y, fontSize: 24, selected: selectY == 1);
+            if (canPlayLAN) Helpers.drawTextStd(TCat.Option, "LAN", startX, optionPos2.y, fontSize: 24, selected: selectY == 1);
 
             Helpers.drawTextStd(TCat.BotHelp, "[X]: Choose, [Z]: Back", Global.halfScreenW, 200, Alignment.Center, fontSize: 24);
         }

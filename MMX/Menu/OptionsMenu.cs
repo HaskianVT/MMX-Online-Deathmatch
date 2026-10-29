@@ -296,11 +296,6 @@ namespace MMXOnline
             }
             else if (charNum == null)
             {
-                if (!Global.regionPingTask.IsCompleted)
-                {
-                    Global.regionPingTask.Wait();
-                }
-
                 menuOptions = new List<MenuOption>()
                 {
                     // Music volume

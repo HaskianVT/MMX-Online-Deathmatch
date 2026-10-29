@@ -1,6 +1,7 @@
 import { dotnet } from './_framework/dotnet.js';
 import * as gl from './webgl.js';
 import * as audio from './audio.js';
+import * as net from './net.js';
 
 const status = document.getElementById('status');
 const canvas = document.getElementById('canvas');
@@ -13,7 +14,7 @@ function setStatus(text) {
 try {
     setStatus('Loading runtime...');
     const { setModuleImports, getAssemblyExports, getConfig, runMain } = await dotnet.create();
-    setModuleImports('platform', { gl, audio });
+    setModuleImports('platform', { gl, audio, net });
     gl.init(canvas);
 
     const exports = await getAssemblyExports(getConfig().mainAssemblyName);
@@ -24,6 +25,10 @@ try {
     const response = await fetch('assets.zip');
     if (!response.ok) throw new Error('Could not download assets.zip: ' + response.status);
     game.loadAssets(new Uint8Array(await response.arrayBuffer()));
+
+    // The servers to play online on, if the site publishes a region.txt (e.g. { "name": "MyServer", "ip": "wss://mmx.example.com" })
+    const regions = await fetch('region.txt');
+    if (regions.ok) game.writeFile('region.txt', await regions.text());
 
     setStatus('Starting...');
     // Let the status text show before the long synchronous load

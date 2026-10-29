@@ -184,7 +184,8 @@ namespace MMXOnline
                 {
                     Global.serverClient.disconnect("Client disconnected before starting.");
                     Global.serverClient = null;
-                    Thread.Sleep(200);
+                    // Gives the network thread time to send the disconnect. The browser has none; the next frames send it.
+                    if (!OperatingSystem.IsBrowser()) Thread.Sleep(200);
                     Menu.change(new JoinMenu(false));
                 }
             }
@@ -194,11 +195,26 @@ namespace MMXOnline
             {
                 autoRefreshTime = 0;
                 autoRefreshCount++;
-                byte[] serverBytes = Global.matchmakingQuerier.send(server.region.ip, "GetServer:" + server.name);
+                refreshServer();
+            }
+        }
+
+        bool refreshingServer;
+        async void refreshServer()
+        {
+            if (refreshingServer) return;
+            refreshingServer = true;
+            try
+            {
+                byte[] serverBytes = await Global.matchmakingQuerier.sendAsync(server.region.ip, "GetServer:" + server.name);
                 if (!serverBytes.IsNullOrEmpty())
                 {
                     server = Helpers.deserialize<Server>(serverBytes);
                 }
+            }
+            finally
+            {
+                refreshingServer = false;
             }
         }
 

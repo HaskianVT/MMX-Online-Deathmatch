@@ -61,6 +61,7 @@ namespace MMXOnline
             }
         }
 
+        static readonly FrameSynchronizationContext frameSynchronizationContext = new FrameSynchronizationContext();
         static Stopwatch fpsClock;
         static Stopwatch diagnosticsClock;
         static Stopwatch packetDiagStopwatch;
@@ -69,6 +70,8 @@ namespace MMXOnline
         // Platforms that can't block in a loop (e.g. the browser) call this and then runFrame() once per frame themselves.
         public static bool init()
         {
+            // Continuations of awaited tasks (e.g. menus waiting for the server) run at the start of a frame, on this thread
+            SynchronizationContext.SetSynchronizationContext(frameSynchronizationContext);
 #if MAC
             Global.assetPath = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName) + "/";
             Global.writePath = Global.assetPath;
@@ -166,11 +169,11 @@ namespace MMXOnline
             // Only used to initialize the Global.ignoreUpgradeChecks variable
             var primeRegions = Global.regions;
 
-            Global.regionPingTask = Task.Run(() =>
+            Global.regionPingTask = Task.Run(async () =>
             {
                 foreach (var region in Global.regions)
                 {
-                    region.computePing();
+                    await region.computePing();
                 }
             });
 
@@ -191,6 +194,8 @@ namespace MMXOnline
         public static void runFrame()
         {
             RenderWindow window = Global.window;
+            frameSynchronizationContext.runPending();
+            PlatformNetwork.pumpPeers();
             if (Global.level != null && Global.level.started)
             {
                 Global.spf = (float)fpsClock.Elapsed.TotalSeconds;

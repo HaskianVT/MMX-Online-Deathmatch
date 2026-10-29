@@ -21,9 +21,17 @@ namespace MMXOnline
             zip.ExtractToDirectory("assets", overwriteFiles: true);
         }
 
+        // Writes a file next to the game, e.g. the region.txt published with the page
+        [JSExport]
+        public static void writeFile(string name, string content)
+        {
+            File.WriteAllText(name, content);
+        }
+
         [JSExport]
         public static bool start()
         {
+            WebNetwork.install();
             return Program.init();
         }
 

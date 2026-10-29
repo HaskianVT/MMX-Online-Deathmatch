@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace MMXOnline
 {
@@ -33,8 +34,10 @@ namespace MMXOnline
             config.SimulatedLoss = Global.simulatedPacketLoss;
             config.SimulatedDuplicatesChance = Global.simulatedDuplicates;
 #endif
+            PlatformNetwork.configure(config);
             var client = new NetClient(config);
             client.Start();
+            PlatformNetwork.track(client);
             NetOutgoingMessage hail = client.CreateMessage("a");
             getConnectEndPoint(serverIp, Global.basePort, out string host, out int port);
             client.Connect(host, port, hail);
@@ -45,7 +48,14 @@ namespace MMXOnline
         // For a WebSocket relay URL, Lidgren connects to a local tunnel endpoint instead of to the relay itself
         private static void getConnectEndPoint(string serverIp, int serverPort, out string host, out int port)
         {
-            if (WebSocketTunnel.isWebSocketUrl(serverIp))
+            if (WebSocketTunnel.isWebSocketUrl(serverIp) && PlatformNetwork.webSocketEndPoint != null)
+            {
+                // The platform's transport sends to the relay over WebSockets itself (the browser can't open a local UDP tunnel)
+                var endPoint = PlatformNetwork.webSocketEndPoint(serverIp, serverPort);
+                host = endPoint.Address.ToString();
+                port = endPoint.Port;
+            }
+            else if (WebSocketTunnel.isWebSocketUrl(serverIp))
             {
                 host = "127.0.0.1";
                 port = WebSocketTunnel.openUdpTunnel(serverIp, serverPort);
@@ -57,9 +67,11 @@ namespace MMXOnline
             }
         }
 
-        public static ServerClient Create(string serverIp, string serverName, int serverPort, ServerPlayer inputServerPlayer, out JoinServerResponse joinServerResponse, out string error)
+        // Connects to a match and waits for the join response without blocking the game loop.
+        // Returns the client and response, or a null client and an error message.
+        public static async Task<(ServerClient serverClient, JoinServerResponse joinServerResponse, string error)> CreateAsync(
+            string serverIp, string serverName, int serverPort, ServerPlayer inputServerPlayer)
         {
-            error = null;
             NetPeerConfiguration config = new NetPeerConfiguration(serverName);
             config.EnableMessageType(NetIncomingMessageType.ConnectionLatencyUpdated);
             config.AutoFlushSendQueue = false;
@@ -69,8 +81,10 @@ namespace MMXOnline
             config.SimulatedLoss = Global.simulatedPacketLoss;
             config.SimulatedDuplicatesChance = Global.simulatedDuplicates;
 #endif
+            PlatformNetwork.configure(config);
             var client = new NetClient(config);
             client.Start();
+            PlatformNetwork.track(client);
             NetOutgoingMessage hail = client.CreateMessage(JsonConvert.SerializeObject(inputServerPlayer));
             getConnectEndPoint(serverIp, serverPort, out string host, out int port);
             client.Connect(host, port, hail);
@@ -87,27 +101,23 @@ namespace MMXOnline
                 {
                     if (message.StartsWith("joinservertargetedresponse:"))
                     {
-                        joinServerResponse = JsonConvert.DeserializeObject<JoinServerResponse>(message.RemovePrefix("joinservertargetedresponse:"));
+                        var joinServerResponse = JsonConvert.DeserializeObject<JoinServerResponse>(message.RemovePrefix("joinservertargetedresponse:"));
                         serverClient.serverPlayer = joinServerResponse.getLastPlayer();
-                        return serverClient;
+                        return (serverClient, joinServerResponse, null);
                     }
                     else if (message.StartsWith("hostdisconnect:"))
                     {
                         var reason = message.Split(':')[1];
-                        error = "Could not join: " + reason;
-                        joinServerResponse = null;
                         serverClient.disconnect("client couldn't get response");
-                        return null;
+                        return (null, null, "Could not join: " + reason);
                     }
                 }
                 count++;
-                Thread.Sleep(100);
+                await Task.Delay(100);
             }
 
-            error = "Failed to get connect response from server.";
-            joinServerResponse = null;
             serverClient.disconnect("client couldn't get response");
-            return null;
+            return (null, null, "Failed to get connect response from server.");
         }
 
         /*

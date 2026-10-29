@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 
 namespace MMXOnline
 {
@@ -905,9 +906,16 @@ namespace MMXOnline
                     region = Options.main.getRegion();
                 }
 
-                var serverData = new Server(Global.version, region, serverName, selectedLevel.name, selectedLevel.shortName, selectedGameMode, playTo, botCount, 10, timeLimit, fixedCamera, hidden, (NetcodeModel)netcodeModel, netcodeModelUnderPing, isLAN, mirrored, useLoadout, 
+                var serverData = new Server(Global.version, region, serverName, selectedLevel.name, selectedLevel.shortName, selectedGameMode, playTo, botCount, 10, timeLimit, fixedCamera, hidden, (NetcodeModel)netcodeModel, netcodeModelUnderPing, isLAN, mirrored, useLoadout,
                     Global.checksum, selectedLevel.checksum, selectedLevel.customMapUrl, savedMatchSettings.extraCpuCharData, getCustomMatchSettings(), disableHtSt, disableVehicles);
-                createServer(SelectCharacterMenu.playerData.charNum, serverData, team, false, previous, out errorMessage);
+                ConnectingMenu.run("Creating match", async () =>
+                {
+                    string createError = await createServer(SelectCharacterMenu.playerData.charNum, serverData, team, false, previous);
+                    if (!string.IsNullOrEmpty(createError))
+                    {
+                        Menu.change(new ErrorMenu(createError, this, inGame));
+                    }
+                }, this, inGame);
             }
             else
             {
@@ -922,37 +930,39 @@ namespace MMXOnline
             }
         }
 
-        public static void createServer(int charNum, Server serverData, int? hostTeam, bool isRecreate, IMainMenu menu, out string errorMessage)
+        // Creates the match on the relay and joins it. Returns an error message if the match couldn't be created.
+        public static async Task<string> createServer(int charNum, Server serverData, int? hostTeam, bool isRecreate, IMainMenu menu)
         {
             serverData.name = serverData.name.Trim();
-            errorMessage = null;
             if (string.IsNullOrWhiteSpace(serverData.name))
             {
-                errorMessage = "Error: Empty match name.";
-                return;
+                return "Error: Empty match name.";
             }
 
             var playerName = Options.main.playerName;
 
-            var response = Global.matchmakingQuerier.createServer(serverData);
+            var response = await Global.matchmakingQuerier.createServerAsync(serverData);
             if (response.server != null)
             {
                 var inputServerPlayer = new ServerPlayer(playerName, -1, true, charNum, hostTeam, Global.deviceId, null, serverData.region.getPing());
-                Global.serverClient = ServerClient.Create(serverData.region.ip, serverData.name, response.server.port, inputServerPlayer, out JoinServerResponse joinServerResponse, out string error);
+                var (serverClient, joinServerResponse, error) = await ServerClient.CreateAsync(serverData.region.ip, serverData.name, response.server.port, inputServerPlayer);
+                Global.serverClient = serverClient;
                 if (Global.serverClient == null)
                 {
                     Menu.change(new ErrorMenu(new string[] { error, "Please try recreating match." }, new HostMenu(new MainMenu(), null, false, serverData.isLAN)));
-                    return;
+                    return null;
                 }
                 Menu.change(new WaitMenu(menu, joinServerResponse.server, isRecreate));
+                return null;
             }
             else
             {
-                errorMessage = response.failReason;
+                string errorMessage = response.failReason;
                 if (string.IsNullOrEmpty(errorMessage) && serverData.region.name == "LAN")
                 {
                     errorMessage = "Could not connect to LAN Relay Server.";
                 }
+                return errorMessage;
             }
         }
 

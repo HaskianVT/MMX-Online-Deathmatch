@@ -133,7 +133,7 @@ namespace MMXOnline
                         var serverData = new Server(Global.version, Options.main.getRegion(), "testserver", Global.quickStartOnlineMap, Global.quickStartOnlineMap, Global.quickStartOnlineGameMode, 100, Global.quickStartOnlineBotCount, 2, 300, false, false, 
                             Global.quickStartNetcodeModel, Global.quickStartNetcodePing, true, Global.quickStartMirrored, Global.quickStartTrainingLoadout, Global.checksum, null, null, SavedMatchSettings.mainOffline.extraCpuCharData, null, 
                             Global.quickStartDisableHtSt, Global.quickStartDisableVehicles);
-                        HostMenu.createServer(Global.quickStartOnlineHostCharNum, serverData, null, false, new MainMenu(), out _);
+                        ConnectingMenu.run("Creating match", () => HostMenu.createServer(Global.quickStartOnlineHostCharNum, serverData, null, false, new MainMenu()), new MainMenu());
                     }
                     else
                     {
@@ -152,7 +152,7 @@ namespace MMXOnline
                     Menu.change(hostmenu);
                     var serverData = new Server(Global.version, Options.main.getRegion(), "testserver", Global.quickStartOnlineMap, Global.quickStartOnlineMap, Global.quickStartOnlineGameMode, 100, Global.quickStartOnlineBotCount, 2, 300, false, false,
                         Global.quickStartNetcodeModel, Global.quickStartNetcodePing, true, Global.quickStartMirrored, Global.quickStartTrainingLoadout, Global.checksum, null, null, SavedMatchSettings.mainOffline.extraCpuCharData, null, Global.quickStartDisableHtSt, Global.quickStartDisableVehicles);
-                    HostMenu.createServer(Global.quickStartCharNum, serverData, null, false, new MainMenu(), out _);
+                    ConnectingMenu.run("Creating match", () => HostMenu.createServer(Global.quickStartCharNum, serverData, null, false, new MainMenu()), new MainMenu());
                 }
                 else if (Global.input.isPressed(Key.Num2))
                 {

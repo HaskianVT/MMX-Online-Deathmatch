@@ -202,6 +202,22 @@ namespace Lidgren.Network
 			}
 		}
 
+		private NetDatagramTransport m_datagramTransport;
+
+		/// <summary>
+		/// Gets or sets a transport to use instead of a UDP socket and network thread; see NetDatagramTransport. Cannot be changed once NetPeer is initialized.
+		/// </summary>
+		public NetDatagramTransport DatagramTransport
+		{
+			get { return m_datagramTransport; }
+			set
+			{
+				if (m_isLocked)
+					throw new NetException("DatagramTransport may not be set after the NetPeer which uses the configuration has been started");
+				m_datagramTransport = value;
+			}
+		}
+
 		/// <summary>
 		/// Gets or sets the maximum amount of connections this peer can hold. Cannot be changed once NetPeer is initialized.
 		/// </summary>

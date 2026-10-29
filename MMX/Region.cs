@@ -56,7 +56,7 @@ namespace MMXOnline
             return ping;
         }
 
-        public void computePing()
+        public async Task computePing()
         {
             if (pingClient == null)
             {
@@ -68,7 +68,7 @@ namespace MMXOnline
             {
                 attempts++;
                 if (attempts > 20) return;
-                Thread.Sleep(100);
+                await Task.Delay(100);
             }
             ping = (int)(pingClient.ServerConnection.AverageRoundtripTime * 1000);
         }

@@ -25,6 +25,10 @@ namespace Lidgren.Network
 
 		private static NetworkInterface GetNetworkInterface()
 		{
+			// Browsers don't expose network interfaces
+			if (OperatingSystem.IsBrowser())
+				return null;
+
 			var computerProperties = IPGlobalProperties.GetIPGlobalProperties();
 			if (computerProperties == null)
 				return null;

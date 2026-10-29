@@ -44,10 +44,6 @@ namespace MMXOnline
         public JoinMenu(bool isLAN)
         {
             this.isLAN = isLAN;
-            if (!isLAN && !Global.regionPingTask.IsCompleted)
-            {
-                Global.regionPingTask.Wait();
-            }
             queueRefresh();
         }
 
@@ -98,9 +94,9 @@ namespace MMXOnline
         }
 
         // null = fail.
-        public GetRegionResponse getRegionServers(Region region)
+        public async Task<GetRegionResponse> getRegionServers(Region region)
         {
-            byte[] response = Global.matchmakingQuerier.send(region.ip, "GetServers");
+            byte[] response = await Global.matchmakingQuerier.sendAsync(region.ip, "GetServers");
             if (response.IsNullOrEmpty())
             {
                 if (response == null && region.name != "LAN")
@@ -119,24 +115,20 @@ namespace MMXOnline
             }
         }
 
-        public void refreshTaskMethod()
+        public async Task refreshTaskMethod()
         {
-            var tasks = new List<Task<GetRegionResponse>>();
-            foreach (var region in getRegions())
+            // Finding LAN regions pings the local network, which takes a while
+            var regions = isLAN ? await Task.Run(getRegions) : getRegions();
+            var responses = await Task.WhenAll(regions.Select(getRegionServers));
+            foreach (var response in responses)
             {
-                tasks.Add(Task.Run(() => getRegionServers(region)));
-            }
-
-            Task.WaitAll(tasks.ToArray());
-            foreach (var task in tasks)
-            {
-                if (task.Result.servers == null)
+                if (response.servers == null)
                 {
-                    failedRegions.Add(task.Result.region);
+                    failedRegions.Add(response.region);
                 }
                 else
                 {
-                    allServers.AddRange(task.Result.servers);
+                    allServers.AddRange(response.servers);
                 }
             }
 
@@ -152,7 +144,7 @@ namespace MMXOnline
             refreshing = true;
             if (refreshTask == null || refreshTask.IsCompleted)
             {
-                refreshTask = Task.Run(refreshTaskMethod);
+                refreshTask = refreshTaskMethod();
             }
 
             if (selServerIndex >= allServers.Count)
@@ -197,7 +189,7 @@ namespace MMXOnline
                 if (Global.input.isPressedMenu(Control.MenuSelectPrimary) || Global.quickStartOnline)
                 {
                     var server = publicServers[selServerIndex];
-                    Menu.change(new SelectCharacterMenu(this, server.level.EndsWith("1v1"), false, false, false, GameMode.isStringTeamMode(server.gameMode), false, () => joinServer(server)));
+                    Menu.change(new SelectCharacterMenu(this, server.level.EndsWith("1v1"), false, false, false, GameMode.isStringTeamMode(server.gameMode), false, () => startJoin(server)));
                 }
             }
 
@@ -227,31 +219,34 @@ namespace MMXOnline
                         Server server = allServers.Where(s => s.hidden && s.name == text).FirstOrDefault();
                         if (server != null)
                         {
-                            Menu.change(new SelectCharacterMenu(this, server.level.EndsWith("1v1"), false, false, false, GameMode.isStringTeamMode(server.gameMode), false, () => joinServer(server)));
+                            Menu.change(new SelectCharacterMenu(this, server.level.EndsWith("1v1"), false, false, false, GameMode.isStringTeamMode(server.gameMode), false, () => startJoin(server)));
                             return;
                         }
 
                         // Fallback: try requesting the server name directly
-                        foreach (var region in getRegions())
+                        ConnectingMenu.run("Looking up match", async () =>
                         {
-                            byte[] serverBytes = Global.matchmakingQuerier.send(region.ip, "GetServer:" + text);
-                            if (!serverBytes.IsNullOrEmpty())
+                            foreach (var region in getRegions())
                             {
-                                server = Helpers.deserialize<Server>(serverBytes);
+                                byte[] serverBytes = await Global.matchmakingQuerier.sendAsync(region.ip, "GetServer:" + text);
+                                if (!serverBytes.IsNullOrEmpty())
+                                {
+                                    server = Helpers.deserialize<Server>(serverBytes);
+                                }
+                                else if (serverBytes == null)
+                                {
+                                    Menu.change(new ErrorMenu(new string[] { "Error when looking up private match." }, this));
+                                    return;
+                                }
+                                if (server != null)
+                                {
+                                    Menu.change(new SelectCharacterMenu(this, server.level.EndsWith("1v1"), false, false, false, GameMode.isStringTeamMode(server.gameMode), false, () => startJoin(server)));
+                                    return;
+                                }
                             }
-                            else if (serverBytes == null)
-                            {
-                                Menu.change(new ErrorMenu(new string[] { "Error when looking up private match." }, this));
-                                return;
-                            }
-                            if (server != null)
-                            {
-                                Menu.change(new SelectCharacterMenu(this, server.level.EndsWith("1v1"), false, false, false, GameMode.isStringTeamMode(server.gameMode), false, () => joinServer(server)));
-                                return;
-                            }
-                        }
 
-                        Menu.change(new ErrorMenu(new string[] { "Private server not found.", "Note: match names are case sensitive." }, this));
+                            Menu.change(new ErrorMenu(new string[] { "Private server not found.", "Note: match names are case sensitive." }, this));
+                        }, this);
                     }));
                 }
                 else
@@ -280,7 +275,13 @@ namespace MMXOnline
             }
         }
 
-        public static void joinServer(Server serverToJoin)
+        // Joins from this menu, showing a connecting screen while waiting for the server
+        void startJoin(Server server)
+        {
+            ConnectingMenu.run("Joining match", () => joinServer(server), new JoinMenu(isLAN));
+        }
+
+        public static async Task joinServer(Server serverToJoin)
         {
             if (Helpers.compareVersions(Global.version, serverToJoin.gameVersion) == -1)
             {
@@ -370,7 +371,8 @@ namespace MMXOnline
             string playerName = Options.main.playerName;
             
             var inputServerPlayer = new ServerPlayer(playerName, -1, false, SelectCharacterMenu.playerData.charNum, null, Global.deviceId, null, serverToJoin.region.getPing());
-            Global.serverClient = ServerClient.Create(serverToJoin.region.ip, serverToJoin.name, serverToJoin.port, inputServerPlayer, out JoinServerResponse joinServerResponse, out string error);
+            var (serverClient, joinServerResponse, error) = await ServerClient.CreateAsync(serverToJoin.region.ip, serverToJoin.name, serverToJoin.port, inputServerPlayer);
+            Global.serverClient = serverClient;
             if (Global.serverClient == null)
             {
                 Menu.change(new ErrorMenu(new string[] { error, "Please try rejoining." }, new JoinMenu(serverToJoin.isLAN)));

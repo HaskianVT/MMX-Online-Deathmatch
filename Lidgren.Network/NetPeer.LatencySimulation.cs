@@ -151,7 +151,7 @@ namespace Lidgren.Network
                     // this can be resolved to a local broadcast addresss e.g 192.168.x.255                    
                     targetCopy.Address = m_configuration.BroadcastAddress;
                     targetCopy.Port = target.Port;
-                    m_socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
+                    m_socket?.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
                 }
                 else if(m_configuration.DualStack && m_configuration.LocalAddress.AddressFamily == AddressFamily.InterNetworkV6)
                     NetUtility.CopyEndpoint(target, targetCopy); //Maps to IPv6 for Dual Mode
@@ -161,7 +161,7 @@ namespace Lidgren.Network
 	                targetCopy.Address = target.Address;
                 }
 
-                int bytesSent = m_socket.SendTo(data, 0, numBytes, SocketFlags.None, targetCopy);
+                int bytesSent = sendDatagram(data, numBytes, targetCopy);
 				if (numBytes != bytesSent)
 					LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
 
@@ -190,7 +190,7 @@ namespace Lidgren.Network
 			finally
 			{
 				if (target.Address.Equals(ba))
-					m_socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, false);
+					m_socket?.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, false);
 			}
 			return true;
 		}
@@ -199,8 +199,8 @@ namespace Lidgren.Network
 		{
 			try
 			{
-				m_socket.DontFragment = true;
-				int bytesSent = m_socket.SendTo(m_sendBuffer, 0, numBytes, SocketFlags.None, target);
+				m_socket?.DontFragment = true;
+				int bytesSent = sendDatagram(m_sendBuffer, numBytes, target);
 				if (numBytes != bytesSent)
 					LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
 
@@ -226,7 +226,7 @@ namespace Lidgren.Network
 			}
 			finally
 			{
-				m_socket.DontFragment = false;
+				m_socket?.DontFragment = false;
 			}
 			return true;
 		}
@@ -235,8 +235,8 @@ namespace Lidgren.Network
 		{
 			try
 			{
-				m_socket.DontFragment = true;
-				int bytesSent = m_socket.SendTo(m_sendBuffer, 0, numBytes, SocketFlags.None, target);
+				m_socket?.DontFragment = true;
+				int bytesSent = sendDatagram(m_sendBuffer, numBytes, target);
 				if (numBytes != bytesSent)
 					LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
 			}
@@ -260,7 +260,7 @@ namespace Lidgren.Network
 			}
 			finally
 			{
-				m_socket.DontFragment = false;
+				m_socket?.DontFragment = false;
 			}
 			return true;
 		}
@@ -280,9 +280,9 @@ namespace Lidgren.Network
 				// TODO: refactor this check outta here
 				ba = NetUtility.GetCachedBroadcastAddress();
 				if (target.Address == ba)
-					m_socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
+					m_socket?.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
 
-				int bytesSent = m_socket.SendTo(m_sendBuffer, 0, numBytes, SocketFlags.None, target);
+				int bytesSent = sendDatagram(m_sendBuffer, numBytes, target);
 				if (numBytes != bytesSent)
 					LogWarning("Failed to send the full " + numBytes + "; only " + bytesSent + " bytes sent in packet!");
 			}
@@ -309,7 +309,7 @@ namespace Lidgren.Network
 			finally
 			{
 				if (target.Address == ba)
-					m_socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, false);
+					m_socket?.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, false);
 			}
 			return;
 		}

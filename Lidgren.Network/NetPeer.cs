@@ -156,6 +156,13 @@ namespace Lidgren.Network
 
 			InitializeNetwork();
 
+			if (m_transport != null)
+			{
+				// No network thread; PumpNetwork() runs the heartbeat on the caller's thread
+				m_networkThread = Thread.CurrentThread;
+				return;
+			}
+
 			// start network thread
 			m_networkThread = new Thread(new ThreadStart(NetworkLoop));
 			m_networkThread.Name = m_configuration.NetworkThreadName;
@@ -168,6 +175,31 @@ namespace Lidgren.Network
 
 			// allow some time for network thread to start up in case they call Connect() or UPnP calls immediately
 			NetUtility.Sleep(50);
+		}
+
+		/// <summary>
+		/// Sends and receives when using a DatagramTransport, which has no network thread. Call it regularly, e.g. every frame.
+		/// </summary>
+		public void PumpNetwork()
+		{
+			if (m_transport == null)
+				return;
+
+			if (m_status == NetPeerStatus.Running)
+			{
+				try
+				{
+					Heartbeat();
+				}
+				catch (Exception ex)
+				{
+					LogWarning(ex.ToString());
+				}
+			}
+			else if (m_status == NetPeerStatus.ShutdownRequested)
+			{
+				ExecutePeerShutdown();
+			}
 		}
 
 		/// <summary>
@@ -387,7 +419,7 @@ namespace Lidgren.Network
 		public void Shutdown(string bye)
 		{
 			// called on user thread
-			if (m_socket == null)
+			if (m_socket == null && (m_transport == null || m_status != NetPeerStatus.Running))
 				return; // already shut down
 
 			LogDebug("Shutdown requested");

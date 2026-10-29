@@ -1,9 +1,10 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace MMXOnline
 {
@@ -32,52 +33,65 @@ namespace MMXOnline
 
         public void createNewServer()
         {
-            Stopwatch stopWatch = new Stopwatch();
-            stopWatch.Start();
-            byte[] serverResponse = null;
-            do
+            ConnectingMenu.run("Creating match", async () =>
             {
-                serverResponse = Global.matchmakingQuerier.send(newServerData.region.ip, "GetServer:" + newServerData.name, 1000);
-                if (stopWatch.ElapsedMilliseconds > 5000)
+                // Wait for the old match to close on the relay, so the new one can use its name
+                Stopwatch stopWatch = Stopwatch.StartNew();
+                byte[] serverResponse = null;
+                do
                 {
-                    Menu.change(new ErrorMenu("Error: Could not create new server.", new MainMenu()));
-                    return;
+                    serverResponse = await Global.matchmakingQuerier.sendAsync(newServerData.region.ip, "GetServer:" + newServerData.name, 1000);
+                    if (stopWatch.ElapsedMilliseconds > 5000)
+                    {
+                        Menu.change(new ErrorMenu("Error: Could not create new server.", new MainMenu()));
+                        return;
+                    }
                 }
-            }
-            while (!serverResponse.IsNullOrEmpty());
+                while (!serverResponse.IsNullOrEmpty() && await retryDelay());
 
-            HostMenu.createServer(SelectCharacterMenu.playerData.charNum, newServerData, null, true, new MainMenu(), out string errorMessage);
+                string errorMessage = await HostMenu.createServer(SelectCharacterMenu.playerData.charNum, newServerData, null, true, new MainMenu());
 
-            if (!string.IsNullOrEmpty(errorMessage))
-            {
-                // Retry once
-                HostMenu.createServer(SelectCharacterMenu.playerData.charNum, newServerData, null, true, new MainMenu(), out errorMessage);
                 if (!string.IsNullOrEmpty(errorMessage))
                 {
-                    Menu.change(new ErrorMenu(errorMessage, new MainMenu()));
+                    // Retry once
+                    errorMessage = await HostMenu.createServer(SelectCharacterMenu.playerData.charNum, newServerData, null, true, new MainMenu());
+                    if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        Menu.change(new ErrorMenu(errorMessage, new MainMenu()));
+                    }
                 }
-            }
+            }, new MainMenu());
+        }
+
+        // Waits a bit between queries, so a request that fails right away doesn't spin without letting frames run. Always true.
+        static async Task<bool> retryDelay()
+        {
+            await Task.Delay(100);
+            return true;
         }
 
         public void rejoinNewServer()
         {
-            Stopwatch stopWatch = new Stopwatch();
-            stopWatch.Start();
-            byte[] serverResponse;
-            do
+            ConnectingMenu.run("Joining match", async () =>
             {
-                serverResponse = Global.matchmakingQuerier.send(newServerData.region.ip, "GetServer:" + newServerData.name, 1000);
-                if (stopWatch.ElapsedMilliseconds > 5000)
+                // Wait for the host to create the new match
+                Stopwatch stopWatch = Stopwatch.StartNew();
+                byte[] serverResponse;
+                do
                 {
-                    Menu.change(new ErrorMenu("Error: Could not rejoin new server.", new MainMenu()));
-                    return;
+                    serverResponse = await Global.matchmakingQuerier.sendAsync(newServerData.region.ip, "GetServer:" + newServerData.name, 1000);
+                    if (stopWatch.ElapsedMilliseconds > 5000)
+                    {
+                        Menu.change(new ErrorMenu("Error: Could not rejoin new server.", new MainMenu()));
+                        return;
+                    }
                 }
-            }
-            while (serverResponse.IsNullOrEmpty());
+                while (serverResponse.IsNullOrEmpty() && await retryDelay());
 
-            Server server = Helpers.deserialize<Server>(serverResponse);
+                Server server = Helpers.deserialize<Server>(serverResponse);
 
-            JoinMenu.joinServer(server);
+                await JoinMenu.joinServer(server);
+            }, new MainMenu());
         }
     }
 }
