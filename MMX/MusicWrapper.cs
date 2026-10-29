@@ -1,6 +1,4 @@
-﻿using SFML.Audio;
-using SFML.Window;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -71,26 +69,26 @@ namespace MMXOnline
         public void update()
         {
             if (music == null) return;
-            if (music.Loop && music.PlayingOffset.AsSeconds() > endPos)
+            if (music.Loop && music.PlayingOffset > endPos)
             {
-                music.PlayingOffset = SFML.System.Time.FromSeconds(startPos);
+                music.PlayingOffset = startPos;
             }
             if (debugLoop)
             {
                 Global.debugString1 = "music start: " + startPos.ToString();
                 Global.debugString2 = "music end: " + endPos.ToString();
-                if (Keyboard.IsKeyPressed(Keyboard.Key.Equal)) endPos += 0.001f;
-                if (Keyboard.IsKeyPressed(Keyboard.Key.Hyphen)) endPos -= 0.001f;
+                if (Global.input.isHeld(Key.Equal)) endPos += 0.001f;
+                if (Global.input.isHeld(Key.Hyphen)) endPos -= 0.001f;
 
-                if (Keyboard.IsKeyPressed(Keyboard.Key.RBracket)) startPos += 0.001f;
-                if (Keyboard.IsKeyPressed(Keyboard.Key.LBracket)) startPos -= 0.001f;
+                if (Global.input.isHeld(Key.RBracket)) startPos += 0.001f;
+                if (Global.input.isHeld(Key.LBracket)) startPos -= 0.001f;
             }
         }
 
         public void setNearEnd()
         {
             if (music == null) return;
-            music.PlayingOffset = SFML.System.Time.FromSeconds(endPos - 1);
+            music.PlayingOffset = endPos - 1;
             debugLoop = true;
         }
 

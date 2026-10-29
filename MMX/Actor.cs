@@ -1,5 +1,4 @@
-﻿using SFML.Audio;
-using SFML.Graphics;
+﻿using SFML.Graphics;
 using SFML.Graphics.Glsl;
 using System;
 using System.Collections;

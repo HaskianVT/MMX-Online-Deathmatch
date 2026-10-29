@@ -1,5 +1,4 @@
-﻿using SFML.Audio;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -60,7 +59,7 @@ namespace MMXOnline
             }
             else
             {
-                var currentLoopPos = loopClip.PlayingOffset.AsMilliseconds();
+                var currentLoopPos = (int)(loopClip.PlayingOffset * 1000);
                 if (currentLoopPos < prevLoopPos)
                 {
                     times++;

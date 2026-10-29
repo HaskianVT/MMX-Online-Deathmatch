@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using SFML.Graphics;
 using SFML.System;
-using SFML.Audio;
 using SFML.Window;
 using Newtonsoft.Json;
 using static SFML.Window.Keyboard;
@@ -328,7 +327,16 @@ namespace MMXOnline
                 }
 
                 Global.view.Center = new Vector2f(0, 0);
-                Global.music?.stop();
+                if (Global.leaveMatchSignal.leaveMatchScenario == LeaveMatchScenario.Recreate ||
+                    Global.leaveMatchSignal.leaveMatchScenario == LeaveMatchScenario.Rejoin)
+                {
+                    // Going into another match, which plays its own music
+                    Global.music?.stop();
+                }
+                else
+                {
+                    Global.changeMusic("menu");
+                }
 
                 Global.leaveMatchSignal = null;
             }
@@ -477,16 +485,17 @@ namespace MMXOnline
             //if (e.Code == Keyboard.Key.Escape)
             //    window.Close();
 
-            Global.input.keyPressed[e.Code] = !Global.input.keyHeld.ContainsKey(e.Code) || !Global.input.keyHeld[e.Code];
-            Global.input.keyHeld[e.Code] = true;
+            Key key = (Key)e.Code;
+            Global.input.keyPressed[key] = !Global.input.keyHeld.ContainsKey(key) || !Global.input.keyHeld[key];
+            Global.input.keyHeld[key] = true;
             Global.input.setLastUpdateTime();
-            if (Global.input.keyPressed[e.Code])
+            if (Global.input.keyPressed[key])
             {
                 Global.input.mashCount++;
             }
 
             // Check for AI takeover
-            if (e.Code == Key.F12 && Global.level?.mainPlayer != null)
+            if (key == Key.F12 && Global.level?.mainPlayer != null)
             {
                 if (Global.level.isTraining() && Global.serverClient == null)
                 {
@@ -540,7 +549,7 @@ namespace MMXOnline
                     }
                 }
             }
-            if (e.Code == Key.F12)
+            if (key == Key.F12)
             {
                 return;
             }
@@ -548,14 +557,15 @@ namespace MMXOnline
             ControlMenu controlMenu = Menu.mainMenu as ControlMenu;
             if (controlMenu != null && controlMenu.listenForKey && controlMenu.bindFrames == 0)
             {
-                controlMenu.bind((int)e.Code);
+                controlMenu.bind((int)key);
             }
         }
 
         private static void onKeyReleased(object sender, KeyEventArgs e)
         {
-            Global.input.keyHeld[e.Code] = false;
-            Global.input.keyPressed[e.Code] = false;
+            Key key = (Key)e.Code;
+            Global.input.keyHeld[key] = false;
+            Global.input.keyPressed[key] = false;
         }
 
         static void onMouseMove(object sender, MouseMoveEventArgs e)
