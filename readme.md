@@ -18,9 +18,9 @@ The repo for the old web version of the game can be found here as a curiosity: h
 
 ## Dev Setup
 
-For the C# parts of the code, you will need Visual Studio/.NET 5 SDK/C# installed. (Note: .NET 5 SDK is no longer supported, and future forks of the project should upgrade to the newest .NET version)
+For the C# parts of the code, you will need Visual Studio/.NET 10 SDK/C# installed.
 
-For the Javascript/Typescript parts of the code, you will Node.js installed and preferrably Visual Studio Code as the IDE. As with .NET 5, the Node.js version may be old and unsupported. If so, future forks should look into upgrading it.
+For the Javascript/Typescript parts of the code, you will Node.js installed and preferrably Visual Studio Code as the IDE. The Node.js version may be old and unsupported. If so, future forks should look into upgrading it.
 
 Please make sure you are on at least Windows 10. Older versions could run into many more issues not documented. Also make sure you are on a recent Visual Studio version. I'm not sure how old a VS version MMXOD supports, but the older the version, the more likely there will be issues. (Since this game is no longer development, too *new* versions in the far future might pose issues, too. VS 2022 should work.)
 
@@ -70,7 +70,7 @@ TCP (via standard .NET libraries) is only used for matchmaking. (Creating/findin
 - buildlinux.ps1 builds the linux build. Note, this does not have assets bundled.
 - buildmac.sh builds the mac os build. Note, this requires a mac. It also requires buildlinux.ps1 to have been run on a windows PC first and the files generated in MacOS to be present on the mac machine's MMXOD repo. Overall mac building is very complex and will not be documented in great detail.
 
-\*SC stands for "Self Contained", meaning a build that does not require .NET 5 pre-installed. The disadvantage is that the build size will be much larger.
+\*SC stands for "Self Contained", meaning a build that does not require the .NET 10 runtime pre-installed. The disadvantage is that the build size will be much larger.
 
 Before building, the Global.cs assetChecksum variable should be set to the checksum obtained by pressing F1 in main menu, if you changed any assets. This step could be automated as a future enhancement.
 Note, if you want to create a mod of the game, set the Global.cs checksumPrefix variable to something unique to your mod to ensure there are no conflicts with other mods or the base game.

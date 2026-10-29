@@ -1,0 +1,8 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Linux builds use the debian-x64 runtime id, the only one CSFML ships its Linux native library under. Since .NET 8 that needs the legacy RID graph. -->
+    <UseRidGraph>true</UseRidGraph>
+  </PropertyGroup>
+
+</Project>

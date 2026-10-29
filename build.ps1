@@ -49,7 +49,7 @@ if ($runBuildTools -eq 'true')
 {
     # Build and run the build tools
     dotnet publish .\BuildTools\BuildTools.csproj -c Release
-    cd .\BuildTools\bin\Release\net5.0-windows
+    cd .\BuildTools\bin\Release\net10.0-windows
     Write-Host "Start run build tools."
     Start-Process .\BuildTools.exe -NoNewWindow -Wait
     Write-Host "End run build tools."

@@ -172,7 +172,7 @@ namespace MMXOnline
             return networkStream.ReadMessage();
         }
 
-        // Stream versions of the above, so matchmaking messages can also travel over a WebSocketStream
+        // Stream versions of the above, so matchmaking messages can also travel over a WebSocketTunnelStream
         public static void SendStringMessage(this Stream networkStream, string message)
         {
             byte[] messageBytes = Encoding.ASCII.GetBytes(message);

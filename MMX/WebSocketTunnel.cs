@@ -51,7 +51,7 @@ namespace MMXOnline
                 ws.Dispose();
                 throw;
             }
-            return new WebSocketStream(ws) { ReadTimeout = timeoutMs, WriteTimeout = timeoutMs };
+            return new WebSocketTunnelStream(ws) { ReadTimeout = timeoutMs, WriteTimeout = timeoutMs };
         }
 
         // Lidgren: opens a local UDP port that forwards to relay UDP port relayPort. Connect the NetClient to 127.0.0.1 on the returned port.
@@ -191,7 +191,7 @@ namespace MMXOnline
     }
 
     // Synchronous Stream over a WebSocket, so the matchmaking code can use it like a NetworkStream
-    public class WebSocketStream : Stream
+    public class WebSocketTunnelStream : Stream
     {
         readonly WebSocket ws;
         readonly byte[] receiveBuffer = new byte[8192];
@@ -199,7 +199,7 @@ namespace MMXOnline
         int receiveCount;
         bool remoteClosed;
 
-        public WebSocketStream(WebSocket ws)
+        public WebSocketTunnelStream(WebSocket ws)
         {
             this.ws = ws;
         }

@@ -45,7 +45,7 @@ namespace Lidgren.Network
 			var cs = GetDecryptStream(ms);
 
 			var result = m_peer.GetStorage(unEncLenBits);
-			cs.Read(result, 0, NetUtility.BytesToHoldBits(unEncLenBits));
+			cs.ReadExactly(result, 0, NetUtility.BytesToHoldBits(unEncLenBits));
 			cs.Close();
 
 			// TODO: recycle existing msg
