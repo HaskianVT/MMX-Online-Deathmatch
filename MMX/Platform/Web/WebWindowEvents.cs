@@ -31,6 +31,13 @@ namespace MMXOnline
         internal void raiseMouseButton(Mouse.Button button, bool down, int x, int y) =>
             (down ? MouseButtonPressed : MouseButtonReleased)?.Invoke(this, new MouseButtonEventArgs { Button = button, X = x, Y = y });
         internal void raiseMouseWheel(float delta) => MouseWheelScrolled?.Invoke(this, new MouseWheelScrollEventArgs { Delta = delta });
+
+        internal void raiseJoystickConnected(uint id, bool connected) =>
+            (connected ? JoystickConnected : JoystickDisconnected)?.Invoke(this, new JoystickConnectEventArgs { JoystickId = id });
+        internal void raiseJoystickButton(uint id, uint button, bool pressed) =>
+            (pressed ? JoystickButtonPressed : JoystickButtonReleased)?.Invoke(this, new JoystickButtonEventArgs { JoystickId = id, Button = button });
+        internal void raiseJoystickMoved(uint id, Joystick.Axis axis, float position) =>
+            JoystickMoved?.Invoke(this, new JoystickMoveEventArgs { JoystickId = id, Axis = axis, Position = position });
     }
 
     public static partial class Mouse
@@ -39,12 +46,100 @@ namespace MMXOnline
         public static void SetPosition(Vector2i position, RenderWindow window) { }
     }
 
-    // Gamepads aren't supported in the browser yet
+    // Gamepads through the browser's Gamepad API (gamepad.js), polled every frame and turned into SFML-like joystick events.
+    // Buttons keep the browser's standard layout numbers, which match the game's generic controller mapping (0 A, 1 B, 2 X, 3 Y,
+    // 4 LB, 5 RB, 8 Back, 9 Start). The left stick and the d-pad both drive the X/Y axes; the right stick is the U/R axes.
     public static partial class Joystick
     {
-        public static void Update() { }
-        public static bool IsConnected(uint joystickId) => false;
-        public static string GetName(uint joystickId) => "";
+        const int maxJoysticks = 4;
+        const int buttonCount = 17;
+        const int axisCount = 4;
+        const float buttonThreshold = 0.5f;
+        // Smallest axis change reported, out of 100, like SFML's joystick threshold
+        const float axisThreshold = 1;
+
+        class State
+        {
+            public bool connected;
+            public readonly bool[] buttons = new bool[buttonCount];
+            public readonly float[] axes = new float[Enum.GetValues<Axis>().Length];
+        }
+
+        static readonly State[] states = createStates();
+        static readonly double[] polled = new double[1 + buttonCount + axisCount];
+
+        static State[] createStates()
+        {
+            var result = new State[maxJoysticks];
+            for (int i = 0; i < maxJoysticks; i++) result[i] = new State();
+            return result;
+        }
+
+        public static void Update()
+        {
+            for (int i = 0; i < maxJoysticks; i++) poll((uint)i, null);
+        }
+
+        public static bool IsConnected(uint joystickId) => joystickId < maxJoysticks && states[joystickId].connected;
+
+        public static string GetName(uint joystickId) => WebGamepad.name((int)joystickId);
+
+        // Reads the gamepads and raises events on window for what changed
+        internal static void dispatch(RenderWindow window)
+        {
+            for (int i = 0; i < maxJoysticks; i++) poll((uint)i, window);
+        }
+
+        static void poll(uint id, RenderWindow window)
+        {
+            WebGamepad.poll((int)id, polled);
+            var state = states[id];
+            bool connected = polled[0] != 0;
+            if (connected != state.connected)
+            {
+                state.connected = connected;
+                window?.raiseJoystickConnected(id, connected);
+            }
+            if (!connected) return;
+
+            for (int b = 0; b < buttonCount; b++)
+            {
+                bool pressed = polled[1 + b] >= buttonThreshold;
+                if (pressed == state.buttons[b]) continue;
+                state.buttons[b] = pressed;
+                window?.raiseJoystickButton(id, (uint)b, pressed);
+            }
+
+            float axis(int index) => (float)polled[1 + buttonCount + index] * 100;
+            float dpad(int negativeButton, int positiveButton) => (state.buttons[positiveButton] ? 100 : 0) - (state.buttons[negativeButton] ? 100 : 0);
+            float dpadX = dpad(14, 15);
+            float dpadY = dpad(12, 13);
+
+            setAxis(id, state, Axis.X, dpadX != 0 ? dpadX : axis(0), window);
+            setAxis(id, state, Axis.Y, dpadY != 0 ? dpadY : axis(1), window);
+            setAxis(id, state, Axis.U, axis(2), window);
+            setAxis(id, state, Axis.R, axis(3), window);
+        }
+
+        static void setAxis(uint id, State state, Axis axis, float position, RenderWindow window)
+        {
+            ref float current = ref state.axes[(int)axis];
+            // Always report coming back to rest, so a stick isn't left slightly pressed
+            if (MathF.Abs(position - current) < axisThreshold && !(position == 0 && current != 0)) return;
+            current = position;
+            window?.raiseJoystickMoved(id, axis, position);
+        }
+    }
+
+    // Calls into gamepad.js (imported in main.js as the "platform" module's "gamepad" object)
+    internal static partial class WebGamepad
+    {
+        [System.Runtime.InteropServices.JavaScript.JSImport("gamepad.poll", "platform")]
+        internal static partial void poll(int index,
+            [System.Runtime.InteropServices.JavaScript.JSMarshalAs<System.Runtime.InteropServices.JavaScript.JSType.MemoryView>] Span<double> state);
+
+        [System.Runtime.InteropServices.JavaScript.JSImport("gamepad.name", "platform")]
+        internal static partial string name(int index);
     }
 
     internal static class WebInput
@@ -120,6 +215,7 @@ namespace MMXOnline
             }
             foreach (var deferred in deferredEvents) pendingEvents.Enqueue(deferred);
             deferredEvents.Clear();
+            Joystick.dispatch(window);
         }
     }
 }

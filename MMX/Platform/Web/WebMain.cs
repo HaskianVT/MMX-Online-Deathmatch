@@ -72,6 +72,21 @@ namespace MMXOnline
         [JSImport("gl.deleteTexture", "platform")]
         internal static partial void deleteTexture(int texture);
 
+        [JSImport("gl.loadFont", "platform")]
+        internal static partial int loadFont([JSMarshalAs<JSType.MemoryView>] Span<byte> ttfBytes);
+
+        [JSImport("gl.fontReady", "platform")]
+        internal static partial bool fontReady(int font);
+
+        // style is Text.Styles
+        [JSImport("gl.measureText", "platform")]
+        internal static partial double measureText(int font, string text, int size, int style);
+
+        // Colors are CSS colors. Returns a texture with the lines drawn on it.
+        [JSImport("gl.renderText", "platform")]
+        internal static partial int renderText(int font, string lines, int size, int style, string fillColor, string outlineColor,
+            double outlineThickness, double padding, double firstBaseline, double lineSpacing, int width, int height);
+
         // Returns 0 if the shader doesn't compile
         [JSImport("gl.createShader", "platform")]
         internal static partial int createShader(string fragmentSource);

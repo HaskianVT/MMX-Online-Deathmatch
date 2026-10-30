@@ -2,6 +2,7 @@ import { dotnet } from './_framework/dotnet.js';
 import * as gl from './webgl.js';
 import * as audio from './audio.js';
 import * as net from './net.js';
+import * as gamepad from './gamepad.js';
 
 const status = document.getElementById('status');
 const canvas = document.getElementById('canvas');
@@ -14,7 +15,7 @@ function setStatus(text) {
 try {
     setStatus('Loading runtime...');
     const { setModuleImports, getAssemblyExports, getConfig, runMain } = await dotnet.create();
-    setModuleImports('platform', { gl, audio, net });
+    setModuleImports('platform', { gl, audio, net, gamepad });
     gl.init(canvas);
 
     const exports = await getAssemblyExports(getConfig().mainAssemblyName);

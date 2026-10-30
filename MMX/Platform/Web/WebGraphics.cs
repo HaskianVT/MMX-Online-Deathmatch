@@ -167,11 +167,11 @@ namespace MMXOnline
 
     public class Font
     {
-        internal readonly string path;
+        internal readonly int id;
 
         public Font(string path)
         {
-            this.path = path;
+            id = WebGL.loadFont(File.ReadAllBytes(path));
         }
     }
 
@@ -544,15 +544,21 @@ namespace MMXOnline
         public void Draw(RenderTarget target, RenderStates states) => target.drawVertices(CollectionsMarshal.AsSpan(vertices), PrimitiveType, states, Transform2D.Identity);
     }
 
-    // Text drawn with a TrueType font. Not drawn in the browser yet; the game uses its bitmap fonts by default.
+    // Text drawn with a TrueType font: webgl.js draws it with the canvas 2D API and it's shown as a textured rectangle.
+    // Laid out like SFML: the first baseline is characterSize below the top, and the outline grows outwards.
     public partial class Text : Drawable
     {
+        // Approximates SFML's line spacing for the game's font
+        const float lineSpacingFactor = 1.2f;
+
         readonly string str;
+        readonly Font font;
         readonly uint characterSize;
 
         public Text(string str, Font font, uint characterSize)
         {
-            this.str = str;
+            this.str = str ?? "";
+            this.font = font;
             this.characterSize = characterSize;
         }
 
@@ -563,9 +569,73 @@ namespace MMXOnline
         public float OutlineThickness { get; set; }
         public Styles Style { get; set; }
 
-        // Rough estimate until fonts are rendered
-        public FloatRect GetLocalBounds() => new FloatRect(0, 0, str.Length * characterSize * 0.6f, characterSize);
+        string[] lines => str.Split('\n');
+        float lineSpacing => characterSize * lineSpacingFactor;
 
-        public void Draw(RenderTarget target, RenderStates states) { }
+        float maxLineWidth()
+        {
+            float width = 0;
+            foreach (var line in lines) width = Math.Max(width, (float)WebGL.measureText(font.id, line, (int)characterSize, (int)Style));
+            return width;
+        }
+
+        public FloatRect GetLocalBounds()
+        {
+            float outline = MathF.Abs(OutlineThickness);
+            float height = characterSize + (lines.Length - 1) * lineSpacing;
+            return new FloatRect(-outline, -outline, maxLineWidth() + outline * 2, height + outline * 2);
+        }
+
+        // Textures of recently drawn texts. The HUD makes new Text objects every frame for the same strings.
+        const int maxCachedTexts = 256;
+        static readonly Dictionary<string, (Texture texture, float padding)> cache = new Dictionary<string, (Texture, float)>();
+
+        static string cssColor(Color c) => $"rgba({c.R},{c.G},{c.B},{c.A / 255f})";
+
+        (Texture texture, float padding, bool cached) getTexture()
+        {
+            string key = $"{font.id}|{characterSize}|{(int)Style}|{FillColor}|{OutlineColor}|{OutlineThickness}|{str}";
+            if (cache.TryGetValue(key, out var entry)) return (entry.texture, entry.padding, true);
+
+            float padding = MathF.Ceiling(MathF.Abs(OutlineThickness)) + 2;
+            int width = (int)MathF.Ceiling(maxLineWidth() + padding * 2);
+            // Room for descenders below the last baseline
+            int height = (int)MathF.Ceiling(characterSize * 1.35f + (lines.Length - 1) * lineSpacing + padding * 2);
+            int id = WebGL.renderText(font.id, str, (int)characterSize, (int)Style, cssColor(FillColor), cssColor(OutlineColor),
+                MathF.Abs(OutlineThickness), padding, padding + characterSize, lineSpacing, Math.Max(width, 1), Math.Max(height, 1));
+            var texture = new Texture(id, new Vector2u((uint)Math.Max(width, 1), (uint)Math.Max(height, 1)), flipped: false);
+
+            // Text drawn before the font loads uses a fallback font, so it's only cached once the font is ready
+            if (!WebGL.fontReady(font.id)) return (texture, padding, false);
+
+            if (cache.Count >= maxCachedTexts)
+            {
+                foreach (var old in cache.Values) WebGL.deleteTexture(old.texture.id);
+                cache.Clear();
+            }
+            cache[key] = (texture, padding);
+            return (texture, padding, true);
+        }
+
+        readonly Vertex[] vertices = new Vertex[4];
+
+        public void Draw(RenderTarget target, RenderStates states)
+        {
+            if (str.Length == 0) return;
+            var (texture, padding, cached) = getTexture();
+            float w = texture.Size.X;
+            float h = texture.Size.Y;
+
+            // The canvas has padding around the text, so its corner is up and left of the text's origin
+            vertices[0] = new Vertex(new Vector2f(-padding, -padding), Color.White, new Vector2f(0, 0));
+            vertices[1] = new Vertex(new Vector2f(-padding, h - padding), Color.White, new Vector2f(0, h));
+            vertices[2] = new Vertex(new Vector2f(w - padding, -padding), Color.White, new Vector2f(w, 0));
+            vertices[3] = new Vertex(new Vector2f(w - padding, h - padding), Color.White, new Vector2f(w, h));
+
+            states.Texture = texture;
+            target.drawVertices(vertices, PrimitiveType.TriangleStrip, states, Transform2D.fromTransformable(Position, new Vector2f(0, 0), Scale, 0));
+
+            if (!cached) WebGL.deleteTexture(texture.id);
+        }
     }
 }

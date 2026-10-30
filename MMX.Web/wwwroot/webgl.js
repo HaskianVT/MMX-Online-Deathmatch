@@ -125,6 +125,70 @@ export function createRenderTexture(width, height) {
     return textures.push({ texture, framebuffer, width, height }) - 1;
 }
 
+// TrueType text: drawn with the canvas 2D API in the game's font, then uploaded as a texture
+
+const fontFaces = [null];  // id -> FontFace
+let textContext;
+
+function textCanvasContext() {
+    textContext ??= new OffscreenCanvas(1, 1).getContext('2d');
+    return textContext;
+}
+
+export function loadFont(bytes) {
+    const id = fontFaces.length;
+    const face = new FontFace('mmxfont' + id, bytes.slice().buffer);
+    fontFaces.push(face);
+    face.load().then(loaded => document.fonts.add(loaded), e => console.warn('Could not load font', e));
+    return id;
+}
+
+// Until the font finishes loading the browser draws with a fallback font, so text drawn before that isn't cached
+export function fontReady(fontId) {
+    return fontFaces[fontId]?.status === 'loaded';
+}
+
+function cssFont(fontId, size, style) {
+    return ((style & 2) ? 'italic ' : '') + ((style & 1) ? 'bold ' : '') + size + 'px mmxfont' + fontId;
+}
+
+export function measureText(fontId, text, size, style) {
+    const context = textCanvasContext();
+    context.font = cssFont(fontId, size, style);
+    return context.measureText(text).width;
+}
+
+// Draws lines of text on a width x height canvas, the first baseline at firstBaseline, and returns it as a texture
+export function renderText(fontId, lines, size, style, fillColor, outlineColor, outlineThickness, padding, firstBaseline, lineSpacing, width, height) {
+    const canvas = new OffscreenCanvas(width, height);
+    const context = canvas.getContext('2d');
+    context.font = cssFont(fontId, size, style);
+    context.textBaseline = 'alphabetic';
+    context.lineJoin = 'round';
+    const textLines = lines.split('\n');
+    for (let i = 0; i < textLines.length; i++) {
+        const y = firstBaseline + i * lineSpacing;
+        if (outlineThickness > 0) {
+            // Strokes are centered on the outline, so double the width to get the thickness outside the letters
+            context.strokeStyle = outlineColor;
+            context.lineWidth = outlineThickness * 2;
+            context.strokeText(textLines[i], padding, y);
+        }
+        context.fillStyle = fillColor;
+        context.fillText(textLines[i], padding, y);
+    }
+
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+    // Smooth like SFML's font textures; the game draws text at 4x and scales it down
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return textures.push({ texture, framebuffer: null, width, height }) - 1;
+}
+
 export function deleteTexture(id) {
     const entry = textures[id];
     if (!entry) return;
