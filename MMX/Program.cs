@@ -693,12 +693,15 @@ namespace MMXOnline
                 buttonReleasedHelper(e.JoystickId, -axisNum);
                 buttonReleasedHelper(e.JoystickId, axisNum);
             }
+            // A d-pad can jump from one side to the other without passing through the center, so release the opposite side too
             else if (e.Position < -threshold)
             {
+                buttonReleasedHelper(e.JoystickId, axisNum);
                 buttonPressedHelper(e.JoystickId, -axisNum);
             }
             else if (e.Position > threshold)
             {
+                buttonReleasedHelper(e.JoystickId, -axisNum);
                 buttonPressedHelper(e.JoystickId, axisNum);
             }
         }
