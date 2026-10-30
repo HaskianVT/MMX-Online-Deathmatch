@@ -90,7 +90,7 @@ MMX.Web builds the game for the browser with WebAssembly, using the MMX sources 
 
 For online play, publish a region.txt next to index.html with WebSocket regions only (e.g. `{ "name": "MyServer", "ip": "wss://mmx.example.com" }`, see the Cloudflare Tunnel section below), since browsers can't open TCP or UDP sockets. LAN play isn't available in the browser.
 
-Not supported in the browser yet: TrueType text, gamepads and saving options between visits.
+Not supported in the browser yet: saving options and controls between visits.
 
 ## Self hosting
 
